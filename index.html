@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Command Center — Support Ops</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Live Support Operations NOC-style dashboard — queue health, agent availability, SLA alerts, and trend charts in one screen.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2300D9FF'/%3E%3Crect x='11' y='11' width='10' height='10' rx='3' fill='%23080B12'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#080B12;
+  --surface:#10151F;
+  --surface-2:#161D2B;
+  --border:rgba(255,255,255,0.07);
+  --text:#F2F5FA;
+  --text-dim:#8A94AC;
+  --text-faint:#525C74;
+
+  --cyan:#00D9FF;
+  --pink:#FF3D9A;
+  --amber:#FFB020;
+  --green:#27E58C;
+  --red:#FF4D5E;
+  --purple:#A56BFF;
+  --blue:#4D8DFF;
+
+  --font-display:'Space Grotesk', sans-serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'JetBrains Mono', monospace;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html, body{height:100%;overflow:hidden;}
+
+body{
+  background:
+    radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(0,217,255,0.10), transparent 60%),
+    radial-gradient(ellipse 1000px 700px at 100% 0%, rgba(255,61,154,0.08), transparent 55%),
+    radial-gradient(ellipse 900px 900px at 50% 110%, rgba(165,107,255,0.08), transparent 55%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  padding:14px 20px;
+}
+
+::selection{background:var(--cyan);color:#000;}
+
+/* ---------- HEADER ---------- */
+.header{
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:12px;
+}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{
+  width:32px;height:32px;border-radius:9px;
+  background:conic-gradient(from 220deg, var(--cyan), var(--pink), var(--amber), var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px rgba(0,217,255,0.35);
+  flex-shrink:0;
+}
+.brand-mark::after{content:"";width:12px;height:12px;border-radius:4px;background:var(--bg);}
+.brand-text .eyebrow{
+  font-family:var(--font-mono);font-size:9.5px;letter-spacing:.16em;
+  color:var(--text-faint);text-transform:uppercase;
+}
+.brand-text h1{
+  font-family:var(--font-display);font-size:17px;font-weight:700;letter-spacing:.01em;
+}
+
+.pulse-strip{
+  flex:1;height:38px;position:relative;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  overflow:hidden;margin:0 6px;
+}
+.pulse-strip svg{width:100%;height:100%;display:block;}
+.pulse-label{
+  position:absolute;top:5px;left:11px;font-family:var(--font-mono);
+  font-size:8.5px;color:var(--text-faint);letter-spacing:.1em;text-transform:uppercase;
+}
+
+.header-stats{display:flex;align-items:center;gap:18px;}
+.hstat{text-align:right;}
+.hstat .n{font-family:var(--font-display);font-size:17px;font-weight:600;line-height:1;}
+.hstat .l{font-family:var(--font-mono);font-size:8.5px;color:var(--text-faint);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+.hstat.online .n{color:var(--green);}
+.hstat.busy .n{color:var(--amber);}
+.hstat.offline .n{color:var(--text-faint);}
+
+.clock-block{text-align:right;padding-left:16px;border-left:1px solid var(--border);}
+.clock{font-family:var(--font-mono);font-size:17px;font-weight:700;letter-spacing:.02em;}
+.refresh-row{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:2px;}
+.refresh-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+.refresh-text{font-family:var(--font-mono);font-size:9px;color:var(--text-faint);}
+
+/* ---------- KPI STRIP ---------- */
+.kpi-grid{
+  flex-shrink:0;
+  display:grid;grid-template-columns:repeat(8,1fr);
+  gap:10px;margin-bottom:12px;
+}
+.kpi-card{
+  background:
+    linear-gradient(155deg, rgba(var(--accent-rgb),0.22), rgba(var(--accent-rgb),0.03) 65%),
+    var(--surface);
+  border:1px solid rgba(var(--accent-rgb),0.35);
+  border-radius:12px;
+  padding:10px 12px;position:relative;overflow:hidden;
+  box-shadow:0 0 0 0 transparent;
+}
+.kpi-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--accent);
+  box-shadow:0 0 10px 0 rgba(var(--accent-rgb),0.8);
+}
+.kpi-card .k-label{
+  font-family:var(--font-mono);font-size:8.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--text-faint);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.kpi-card .k-value{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--accent);line-height:1;}
+.kpi-card .k-sub{font-size:9.5px;color:var(--text-dim);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.k-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);flex-shrink:0;}
+
+/* ---------- MAIN GRID (all widgets visible at once) ---------- */
+.dash{
+  flex:1;min-height:0;
+  display:grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr auto;
+  grid-template-areas:
+    "agents agents queue   cliq"
+    "agents agents alerts  alerts"
+    "charts charts  charts charts";
+  gap:12px;
+}
+.gw-agents{grid-area:agents;}
+.gw-queue{grid-area:queue;}
+.gw-cliq{grid-area:cliq;}
+.gw-alerts{grid-area:alerts;}
+.gw-charts{grid-area:charts;}
+
+@media (max-width:1200px){
+  .dash{grid-template-columns:1fr 1fr; grid-template-areas:
+    "agents agents"
+    "queue  cliq"
+    "alerts alerts"
+    "charts charts";
+    grid-template-rows:1.3fr auto auto auto;
+  }
+}
+
+/* ---------- PANEL SHELL ---------- */
+.panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:14px 16px;display:flex;flex-direction:column;min-height:0;
+  position:relative;overflow:hidden;
+}
+.panel::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--panel-accent, var(--border));
+  box-shadow:0 0 10px 0 rgba(var(--panel-accent-rgb,255), 0.7);
+}
+.gw-agents.panel{
+  --panel-accent:var(--cyan); --panel-accent-rgb:0,217,255;
+  background:linear-gradient(160deg, rgba(0,217,255,0.05), transparent 45%), var(--surface);
+  border-color:rgba(0,217,255,0.18);
+}
+.gw-queue.panel{
+  --panel-accent:var(--purple); --panel-accent-rgb:165,107,255;
+  background:linear-gradient(160deg, rgba(165,107,255,0.06), transparent 45%), var(--surface);
+  border-color:rgba(165,107,255,0.18);
+}
+.gw-cliq.panel{
+  --panel-accent:var(--green); --panel-accent-rgb:39,229,140;
+  background:linear-gradient(160deg, rgba(39,229,140,0.06), transparent 45%), var(--surface);
+  border-color:rgba(39,229,140,0.18);
+}
+.gw-alerts.panel{
+  --panel-accent:var(--red); --panel-accent-rgb:255,77,94;
+  background:linear-gradient(160deg, rgba(255,77,94,0.06), transparent 45%), var(--surface);
+  border-color:rgba(255,77,94,0.18);
+}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;}
+.panel-title{font-family:var(--font-display);font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.panel-title .bar{width:3px;height:13px;border-radius:2px;background:var(--cyan);}
+.src-tag{
+  font-family:var(--font-mono);font-size:8.5px;letter-spacing:.04em;
+  color:var(--text-faint);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:5px;padding:2px 6px;font-weight:500;
+}
+.panel-note{font-family:var(--font-mono);font-size:9.5px;color:var(--text-faint);}
+
+/* ---------- AGENT STATUS COLUMNS ---------- */
+.status-columns{
+  flex:1;min-height:0;
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:10px;
+}
+.status-col{
+  display:flex;flex-direction:column;min-height:0;
+  background:linear-gradient(160deg, rgba(var(--col-rgb),0.07), transparent 55%), var(--surface-2);
+  border:1px solid rgba(var(--col-rgb),0.22);
+  border-radius:12px;
+  padding:9px;
+}
+.status-col-head{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(var(--col-rgb),0.22);
+}
+.status-col-name{
+  font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--col-color);display:flex;align-items:center;gap:6px;
+}
+.status-col-name .dot{width:7px;height:7px;border-radius:50%;background:var(--col-color);box-shadow:0 0 6px var(--col-color);flex-shrink:0;}
+.status-col-count{
+  font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--col-color);
+  background:rgba(var(--col-rgb),0.16);border-radius:20px;padding:1px 8px;flex-shrink:0;
+}
+.status-col-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.status-col-empty{font-family:var(--font-mono);font-size:9.5px;color:var(--text-faint);text-align:center;padding:14px 4px;}
+
+.agent-card{
+  background:linear-gradient(155deg, rgba(var(--col-rgb),0.12), rgba(var(--col-rgb),0.02) 70%), var(--surface);
+  border:1px solid rgba(var(--col-rgb),0.24);
+  border-radius:9px;
+  padding:7px 9px;display:flex;gap:8px;align-items:center;
+}
+.avatar{
+  width:28px;height:28px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:600;font-size:10px;color:#0A0D14;
+  background:var(--avatar-bg);
+}
+.agent-info{flex:1;min-width:0;}
+.agent-name{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.agent-since{font-size:9px;color:var(--text-faint);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+@media (max-width:1400px){
+  .status-columns{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));grid-auto-rows:1fr;}
+}
+
+/* ---------- QUEUE ---------- */
+.queue-rows{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:7px;}
+.queue-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface-2);border-radius:9px;}
+.queue-name{font-size:11px;color:var(--text-dim);}
+.queue-val{font-family:var(--font-mono);font-weight:700;font-size:13px;}
+
+.gauge-wrap{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-shrink:0;}
+.gauge{width:60px;height:60px;border-radius:50%;position:relative;flex-shrink:0;}
+.gauge-inner{
+  position:absolute;inset:6px;border-radius:50%;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+}
+.gauge-inner .g-n{font-family:var(--font-display);font-size:14px;font-weight:700;}
+.gauge-inner .g-l{font-family:var(--font-mono);font-size:7px;color:var(--text-faint);}
+.gauge-side .g-name{font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);}
+.gauge-side .g-val{font-family:var(--font-display);font-size:15px;font-weight:700;}
+
+/* ---------- ALERTS ---------- */
+.alerts-list{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow-y:auto;}
+.alert{
+  display:flex;gap:9px;align-items:flex-start;padding:8px 10px;
+  border-radius:9px;border-left:3px solid var(--sev-color);
+  background:
+    linear-gradient(155deg, rgba(var(--sev-rgb),0.14), rgba(var(--sev-rgb),0.02) 70%),
+    var(--surface-2);
+  border-top:1px solid rgba(var(--sev-rgb),0.25);
+  border-right:1px solid rgba(var(--sev-rgb),0.25);
+  border-bottom:1px solid rgba(var(--sev-rgb),0.25);
+}
+.alert.critical{animation:flash 1.4s infinite;}
+@keyframes flash{0%,100%{background:var(--surface-2);}50%{background:rgba(255,77,94,0.14);}}
+.alert-dot{width:7px;height:7px;border-radius:50%;background:var(--sev-color);margin-top:3px;flex-shrink:0;box-shadow:0 0 8px var(--sev-color);}
+.alert-body .a-title{font-size:11.5px;font-weight:600;}
+.alert-body .a-meta{font-family:var(--font-mono);font-size:9px;color:var(--text-faint);margin-top:1px;}
+
+/* ---------- CLIQ CHANNELS ---------- */
+.cliq-feed{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;justify-content:space-evenly;}
+.cliq-channel-row{
+  background:
+    linear-gradient(155deg, rgba(var(--channel-rgb),0.14), rgba(var(--channel-rgb),0.02) 70%),
+    var(--surface-2);
+  border:1px solid rgba(var(--channel-rgb),0.28);
+  border-left:3px solid var(--channel-color);
+  border-radius:10px;
+  padding:9px 11px;
+}
+.cliq-top-row{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.cliq-channel{font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--text);}
+.cliq-total{font-family:var(--font-mono);font-size:9.5px;color:var(--text-faint);flex-shrink:0;}
+.cliq-bar{height:5px;border-radius:3px;background:rgba(255,255,255,0.08);margin-top:7px;overflow:hidden;}
+.cliq-bar-fill{height:100%;border-radius:3px;box-shadow:0 0 8px 0 rgba(var(--channel-rgb),0.7);}
+.cliq-stats-row{display:flex;align-items:center;gap:14px;margin-top:6px;}
+.cliq-stat{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim);display:flex;align-items:center;gap:5px;}
+.cliq-stat .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.cliq-stat.open .dot{background:var(--amber);box-shadow:0 0 5px var(--amber);}
+.cliq-stat.closed .dot{background:var(--green);box-shadow:0 0 5px var(--green);}
+
+/* ---------- CHARTS ---------- */
+.chart-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;height:170px;}
+.chart-box{background:var(--surface-2);border-radius:11px;padding:10px 12px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:0;position:relative;overflow:hidden;}
+.chart-box::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;}
+.chart-box:nth-child(1){border-color:rgba(165,107,255,0.22);}
+.chart-box:nth-child(1)::before{background:var(--purple);box-shadow:0 0 10px 0 rgba(165,107,255,0.7);}
+.chart-box:nth-child(2){border-color:rgba(0,217,255,0.22);}
+.chart-box:nth-child(2)::before{background:linear-gradient(90deg,var(--cyan),var(--pink));box-shadow:0 0 10px 0 rgba(0,217,255,0.6);}
+.chart-box:nth-child(3){border-color:rgba(39,229,140,0.22);}
+.chart-box:nth-child(3)::before{background:linear-gradient(90deg,var(--green),var(--red));box-shadow:0 0 10px 0 rgba(39,229,140,0.6);}
+.chart-box:nth-child(4){border-color:rgba(255,176,32,0.22);}
+.chart-box:nth-child(4)::before{background:var(--amber);box-shadow:0 0 10px 0 rgba(255,176,32,0.7);}
+.chart-box h4{flex-shrink:0;font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;}
+.canvas-wrap{flex:1;min-height:0;position:relative;}
+.canvas-wrap canvas{position:absolute;inset:0;width:100% !important;height:100% !important;}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:3px;}
+
+/* Small/short viewport fallback: allow scroll instead of crushing content */
+@media (max-width:900px), (max-height:640px){
+  html, body{height:auto;overflow:auto;}
+  body{display:block;}
+  .kpi-grid{grid-template-columns:repeat(4,1fr);}
+  .dash{display:flex;flex-direction:column;height:auto;}
+  .panel{min-height:280px;}
+  .status-columns{grid-template-columns:repeat(2,1fr);}
+  .status-col-list{max-height:220px;}
+  .queue-rows,.alerts-list,.cliq-feed{max-height:320px;}
+  .chart-grid{height:auto;grid-template-columns:1fr 1fr;}
+  .chart-box{height:200px;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div class="brand-text">
+      <div class="eyebrow">Live · Support Operations</div>
+      <h1>Command Center</h1>
+    </div>
+  </div>
+
+  <div class="pulse-strip">
+    <div class="pulse-label">Activity Pulse — Calls · Chats · Tickets</div>
+    <svg id="pulseSvg" viewBox="0 0 600 44" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="header-stats">
+    <div class="hstat online"><div class="n" id="statOnline">--</div><div class="l">Online</div></div>
+    <div class="hstat busy"><div class="n" id="statBusy">--</div><div class="l">Busy</div></div>
+    <div class="hstat offline"><div class="n" id="statOffline">--</div><div class="l">Offline</div></div>
+    <div class="clock-block">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="refresh-row"><span class="refresh-dot"></span><span class="refresh-text" id="refreshText">next refresh in 60s</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<div class="dash">
+
+  <div class="panel gw-agents">
+    <div class="panel-head">
+      <div class="panel-title"><span class="bar" style="background:var(--cyan)"></span>Agent Availability <span class="src-tag">Zoho People</span></div>
+      <div class="panel-note" id="agentCountNote">25 agents</div>
+    </div>
+    <div class="status-columns" id="agentGrid"></div>
+  </div>
+
+  <div class="panel gw-queue">
+    <div class="panel-head"><div class="panel-title"><span class="bar" style="background:var(--purple)"></span>Queue Health</div></div>
+    <div class="gauge-wrap">
+      <div class="gauge" id="healthGauge">
+        <div class="gauge-inner"><div class="g-n" id="healthScore">--</div><div class="g-l">SCORE</div></div>
+      </div>
+      <div class="gauge-side">
+        <div class="g-name">Longest wait</div>
+        <div class="g-val" id="qLongest" style="color:var(--amber)">--</div>
+      </div>
+    </div>
+    <div class="queue-rows" id="queueRowsFull"></div>
+  </div>
+
+  <div class="panel gw-cliq">
+    <div class="panel-head">
+      <div class="panel-title"><span class="bar" style="background:var(--green)"></span>Cliq Channels</div>
+      <div class="panel-note" id="cliqCountNote">-- pings</div>
+    </div>
+    <div class="cliq-feed" id="cliqFeed"></div>
+  </div>
+
+  <div class="panel gw-alerts">
+    <div class="panel-head"><div class="panel-title"><span class="bar" style="background:var(--red)"></span>Live Alerts</div><div class="panel-note" id="alertCount">-- active</div></div>
+    <div class="alerts-list" id="alertsListFull"></div>
+  </div>
+
+  <div class="gw-charts chart-grid">
+    <div class="chart-box"><h4>Tickets / Hour</h4><div class="canvas-wrap"><canvas id="chartTickets"></canvas></div></div>
+    <div class="chart-box"><h4>Chats &amp; Calls / Hour</h4><div class="canvas-wrap"><canvas id="chartChats"></canvas></div></div>
+    <div class="chart-box"><h4>CSAT vs DSAT Trend</h4><div class="canvas-wrap"><canvas id="chartCsat"></canvas></div></div>
+    <div class="chart-box"><h4>Team Occupancy Trend</h4><div class="canvas-wrap"><canvas id="chartOcc"></canvas></div></div>
+  </div>
+
+</div>
+
+<script>
+/* ============ MOCK DATA LAYER ============
+   In production these functions are replaced with calls to
+   Zoho Desk / CRM / SalesIQ / Voice / Cliq APIs via the backend + WebSocket push.
+*/
+const FIRST_NAMES = ["John","Sarah","Priya","Marcus","Elena","Tomás","Aisha","Yuki","David","Fatima","Liam","Noor","Carlos","Mei","Ben","Zara","Ivan","Grace","Omar","Nina","Theo","Ana","Kwame","Lucia","Sam"];
+/* Zoho People availability states (attendance / presence, not workload) */
+const STATUS_META = {
+  "Available": {color:"var(--green)"},
+  "In a Meeting": {color:"var(--blue)"},
+  "Away":      {color:"var(--amber)"},
+  "On Leave":  {color:"var(--purple)"},
+  "Offline":   {color:"var(--text-faint)"},
+};
+const AVATAR_COLORS = ["#00D9FF","#FF3D9A","#FFB020","#27E58C","#A56BFF","#4D8DFF"];
+
+/* RGB equivalents of the CSS accent vars, used to build translucent tinted
+   backgrounds/borders via rgba(var(--x-rgb), alpha) since CSS can't derive
+   rgba() straight from a var() holding a hex value. */
+const ACCENT_RGB = {
+  "var(--blue)":"77,141,255",
+  "var(--cyan)":"0,217,255",
+  "var(--purple)":"165,107,255",
+  "var(--amber)":"255,176,32",
+  "var(--green)":"39,229,140",
+  "var(--red)":"255,77,94",
+  "var(--pink)":"255,61,154",
+  "var(--text-faint)":"82,92,116",
+};
+function rgbOf(v){ return ACCENT_RGB[v] || "255,255,255"; }
+
+function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function pick(arr){return arr[rand(0,arr.length-1)];}
+function pad2(n){return n.toString().padStart(2,'0');}
+
+function genAgents(){
+  return FIRST_NAMES.map((name,i)=>{
+    const r = Math.random();
+    let status;
+    if(r < 0.55) status = "Available";
+    else if(r < 0.70) status = "In a Meeting";
+    else if(r < 0.82) status = "Away";
+    else if(r < 0.90) status = "On Leave";
+    else status = "Offline";
+
+    let since;
+    if(status === "On Leave"){
+      since = "On leave today";
+    } else if(status === "Offline"){
+      since = "Not checked in";
+    } else {
+      const h = rand(8,17), m = pad2(rand(0,59));
+      since = `Since ${h}:${m} ${h<12?'AM':'PM'}`;
+    }
+
+    return {
+      id:i, name, initials:name.slice(0,2).toUpperCase(),
+      color: AVATAR_COLORS[i % AVATAR_COLORS.length],
+      status, since
+
+    };
+  });
+}
+
+function genAlerts(){
+  const pool = [
+    {sev:"critical", title:"SLA breach risk — Billing queue in 12 min", meta:"Zoho Desk · Queue"},
+    {sev:"critical", title:"VIP customer waiting 6m 40s — Acme Corp", meta:"Zoho CRM · Enterprise"},
+    {sev:"warn", title:"Chat queue overload — 9 waiting", meta:"Zoho SalesIQ"},
+    {sev:"warn", title:"Agent Marcus offline for 22 min", meta:"Agent Status"},
+    {sev:"critical", title:"Negative CSAT received — Ticket #4821", meta:"Zoho Desk · CSAT"},
+    {sev:"warn", title:"Escalated ticket unassigned 15m", meta:"Zoho Desk · Escalations"},
+    {sev:"info", title:"Call volume trending +18% vs avg", meta:"Zoho Voice"},
+  ];
+  const n = rand(4,7);
+  return Array.from({length:n}, ()=>pick(pool));
+}
+
+const SEV_COLOR = {critical:"var(--red)", warn:"var(--amber)", info:"var(--cyan)"};
+
+/* ---------- ZOHO CLIQ CHANNELS — ping summary ---------- */
+const CLIQ_CHANNELS = [
+  {name:"Zoho Projects Support",            color:"var(--cyan)"},
+  {name:"Zoho Projects Partner Support",    color:"var(--purple)"},
+  {name:"Zoho Projects Internal Users Feedback", color:"var(--amber)"},
+  {name:"Zoho Projects Sales & Support",    color:"var(--pink)"},
+  {name:"Zoho BugTracker",                  color:"var(--red)"},
+];
+function genCliqChannelStats(){
+  return CLIQ_CHANNELS.map(ch=>{
+    const total = rand(8,60);
+    const closed = rand(Math.floor(total*0.4), total);
+    const open = total - closed;
+    return {name:ch.name, color:ch.color, total, closed, open};
+  });
+}
+
+/* ============ RENDER: HEADER ============ */
+function updateClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent = d.toLocaleTimeString('en-GB');
+}
+setInterval(updateClock, 1000); updateClock();
+
+let countdown = 60;
+function tickRefresh(){
+  countdown--;
+  if(countdown<=0){countdown=60; renderAll();}
+  document.getElementById('refreshText').textContent = `next refresh in ${countdown}s`;
+}
+setInterval(tickRefresh, 1000);
+
+/* ============ RENDER: KPI CARDS ============ */
+function renderKPIs(state){
+  const cards = [
+    {label:"Live Calls", value:state.liveCalls, sub:`${state.callsQueue} queued`, accent:"var(--blue)"},
+    {label:"Live Chats", value:state.liveChats, sub:`${state.chatsQueue} waiting`, accent:"var(--cyan)"},
+    {label:"Open Tickets", value:state.openTickets, sub:`${state.newToday} today`, accent:"var(--purple)"},
+    {label:"Waiting", value:state.waiting, sub:`avg wait ${state.avgWait}`, accent:"var(--amber)"},
+    {label:"CSAT Today", value:state.csat+"%", sub:`${state.dsat} DSAT`, accent:"var(--green)"},
+    {label:"SLA Breaches", value:state.slaBreach, sub:"last 24h", accent:"var(--red)"},
+    {label:"Critical", value:state.critical, sub:"needs escalation", accent:"var(--pink)"},
+    {label:"Avg Response", value:state.frt, sub:`res. ${state.art}`, accent:"var(--blue)"},
+  ];
+  document.getElementById('kpiGrid').innerHTML = cards.map(c=>`
+    <div class="kpi-card" style="--accent:${c.accent};--accent-rgb:${rgbOf(c.accent)}">
+      <div class="k-label"><span>${c.label}</span><span class="k-dot"></span></div>
+      <div class="k-value">${c.value}</div>
+      <div class="k-sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+/* ============ RENDER: AGENTS ============ */
+function renderAgents(agents){
+  const online = agents.filter(a=>a.status!=="Offline" && a.status!=="On Leave").length;
+  const busy = agents.filter(a=>["In a Meeting","Away"].includes(a.status)).length;
+  const offline = agents.length - online;
+  document.getElementById('statOnline').textContent = online;
+  document.getElementById('statBusy').textContent = busy;
+  document.getElementById('statOffline').textContent = offline;
+  document.getElementById('agentCountNote').textContent = `${agents.length} agents · ${online} available now`;
+
+  const STATUS_ORDER = ["Available","In a Meeting","Away","On Leave","Offline"];
+  document.getElementById('agentGrid').innerHTML = STATUS_ORDER.map(status=>{
+    const group = agents.filter(a=>a.status===status);
+    const color = STATUS_META[status].color;
+    const rgb = rgbOf(color);
+    const cards = group.length
+      ? group.map(a=>`
+        <div class="agent-card">
+          <div class="avatar" style="--avatar-bg:${a.color}">${a.initials}</div>
+          <div class="agent-info">
+            <div class="agent-name">${a.name}</div>
+            <div class="agent-since">${a.since}</div>
+          </div>
+        </div>`).join('')
+      : `<div class="status-col-empty">No agents</div>`;
+    return `
+    <div class="status-col" style="--col-color:${color};--col-rgb:${rgb}">
+      <div class="status-col-head">
+        <span class="status-col-name"><span class="dot"></span>${status}</span>
+        <span class="status-col-count">${group.length}</span>
+      </div>
+      <div class="status-col-list">${cards}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ RENDER: QUEUE ============ */
+function renderQueue(state){
+  document.getElementById('qLongest').textContent = state.longestWait;
+  document.getElementById('healthScore').textContent = state.healthScore;
+  const hue = state.healthScore>75 ? '39,229,140' : state.healthScore>50 ? '255,176,32' : '255,77,94';
+  document.getElementById('healthGauge').style.background =
+    `conic-gradient(rgb(${hue}) ${state.healthScore*3.6}deg, rgba(255,255,255,0.08) 0deg)`;
+
+  const rows = [
+    ["Tickets waiting", state.waiting],
+    ["Chats waiting", state.chatsQueue],
+    ["Calls waiting", state.callsQueue],
+    ["Average wait", state.avgWait],
+  ];
+  document.getElementById('queueRowsFull').innerHTML = rows.map(([n,v])=>`
+    <div class="queue-row"><span class="queue-name">${n}</span><span class="queue-val">${v}</span></div>`).join('');
+}
+
+/* ============ RENDER: ALERTS ============ */
+function renderAlerts(alerts){
+  document.getElementById('alertsListFull').innerHTML = alerts.map(a=>`
+    <div class="alert ${a.sev==='critical'?'critical':''}" style="--sev-color:${SEV_COLOR[a.sev]};--sev-rgb:${rgbOf(SEV_COLOR[a.sev])}">
+      <div class="alert-dot"></div>
+      <div class="alert-body">
+        <div class="a-title">${a.title}</div>
+        <div class="a-meta">${a.meta}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('alertCount').textContent = `${alerts.length} active`;
+}
+
+/* ============ RENDER: CLIQ CHANNELS ============ */
+function renderCliq(channels){
+  const totalPings = channels.reduce((s,c)=>s+c.total,0);
+  document.getElementById('cliqFeed').innerHTML = channels.map(c=>{
+    const closedPct = Math.round((c.closed/c.total)*100);
+    return `
+    <div class="cliq-channel-row" style="--channel-color:${c.color};--channel-rgb:${rgbOf(c.color)}">
+      <div class="cliq-top-row">
+        <span class="cliq-channel">${c.name}</span>
+        <span class="cliq-total">${c.total} pings</span>
+      </div>
+      <div class="cliq-bar"><div class="cliq-bar-fill" style="width:${closedPct}%;background:${c.color}"></div></div>
+      <div class="cliq-stats-row">
+        <span class="cliq-stat open"><span class="dot"></span>${c.open} open</span>
+        <span class="cliq-stat closed"><span class="dot"></span>${c.closed} closed</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('cliqCountNote').textContent = `${totalPings} pings · 5 channels`;
+}
+
+/* ============ RENDER: PULSE STRIP ============ */
+let pulseData = Array.from({length:60}, ()=>rand(10,34));
+function renderPulse(){
+  pulseData.shift();
+  pulseData.push(rand(8,36));
+  const w=600,h=44;
+  const step = w/(pulseData.length-1);
+  let d = `M0,${h-pulseData[0]}`;
+  pulseData.forEach((v,i)=>{ d += ` L${i*step},${h-v}`; });
+  const areaD = d + ` L${w},${h} L0,${h} Z`;
+  document.getElementById('pulseSvg').innerHTML = `
+    <defs>
+      <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#00D9FF" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="#00D9FF" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${areaD}" fill="url(#pg)"/>
+    <path d="${d}" fill="none" stroke="#00D9FF" stroke-width="1.6"/>
+  `;
+}
+setInterval(renderPulse, 1200);
+
+/* ============ CHARTS ============ */
+Chart.defaults.color = "#8A94AC";
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size = 9;
+
+const hourLabels = Array.from({length:12}, (_,i)=>`${(i+8)%24}:00`);
+let charts = {};
+function buildCharts(){
+  const ctxT = document.getElementById('chartTickets');
+  charts.tickets = new Chart(ctxT, {
+    type:'bar',
+    data:{labels:hourLabels, datasets:[{data:hourLabels.map(()=>rand(8,40)), backgroundColor:'#A56BFF', borderRadius:3}]},
+    options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.06)'}}}}
+  });
+
+  const ctxC = document.getElementById('chartChats');
+  charts.chats = new Chart(ctxC, {
+    type:'line',
+    data:{labels:hourLabels, datasets:[
+      {label:'Chats', data:hourLabels.map(()=>rand(5,30)), borderColor:'#00D9FF', backgroundColor:'rgba(0,217,255,0.12)', fill:true, tension:.4, pointRadius:0},
+      {label:'Calls', data:hourLabels.map(()=>rand(2,18)), borderColor:'#FF3D9A', backgroundColor:'rgba(255,61,154,0.10)', fill:true, tension:.4, pointRadius:0},
+    ]},
+    options:{maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:6,font:{size:8}}}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.06)'}}}}
+  });
+
+  const ctxS = document.getElementById('chartCsat');
+  charts.csat = new Chart(ctxS, {
+    type:'line',
+    data:{labels:hourLabels, datasets:[
+      {label:'CSAT %', data:hourLabels.map(()=>rand(82,98)), borderColor:'#27E58C', tension:.4, pointRadius:0},
+      {label:'DSAT #', data:hourLabels.map(()=>rand(0,6)), borderColor:'#FF4D5E', tension:.4, pointRadius:0, yAxisID:'y1'},
+    ]},
+    options:{maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:6,font:{size:8}}}},
+      scales:{x:{grid:{display:false}}, y:{grid:{color:'rgba(255,255,255,0.06)'}}, y1:{position:'right', grid:{display:false}}}}
+  });
+
+  const ctxO = document.getElementById('chartOcc');
+  charts.occ = new Chart(ctxO, {
+    type:'bar',
+    data:{labels:hourLabels, datasets:[{data:hourLabels.map(()=>rand(45,95)), backgroundColor:hourLabels.map(()=>{
+      const v = rand(45,95); return v>80?'#FF4D5E':v>60?'#FFB020':'#27E58C';
+    }), borderRadius:3}]},
+    options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.06)'},max:100}}}
+  });
+}
+
+/* ============ MASTER STATE ============ */
+function genState(){
+  const chatsQueue = rand(0,9), callsQueue = rand(0,4), waiting = chatsQueue+callsQueue+rand(0,10);
+  return {
+    liveCalls: rand(4,14), liveChats: rand(6,22), openTickets: rand(80,180),
+    newToday: rand(20,60), waiting, chatsQueue, callsQueue,
+    avgWait: `${rand(1,6)}m ${rand(0,59)}s`, longestWait: `${rand(6,18)}m`,
+    csat: rand(88,98), dsat: rand(1,9), slaBreach: rand(0,4), critical: rand(1,6),
+    frt: `${rand(1,4)}m`, art: `${rand(1,5)}h`,
+    healthScore: rand(55,96),
+  };
+}
+
+function refreshCharts(){
+  charts.tickets.data.datasets[0].data = hourLabels.map(()=>rand(8,40));
+  charts.tickets.update();
+
+  charts.chats.data.datasets[0].data = hourLabels.map(()=>rand(5,30));
+  charts.chats.data.datasets[1].data = hourLabels.map(()=>rand(2,18));
+  charts.chats.update();
+
+  charts.csat.data.datasets[0].data = hourLabels.map(()=>rand(82,98));
+  charts.csat.data.datasets[1].data = hourLabels.map(()=>rand(0,6));
+  charts.csat.update();
+
+  const occData = hourLabels.map(()=>rand(45,95));
+  charts.occ.data.datasets[0].data = occData;
+  charts.occ.data.datasets[0].backgroundColor = occData.map(v=> v>80?'#FF4D5E':v>60?'#FFB020':'#27E58C');
+  charts.occ.update();
+}
+
+function renderAll(){
+  const state = genState();
+  const agents = genAgents();
+  const alerts = genAlerts();
+  const pings = genCliqChannelStats();
+  renderKPIs(state);
+  renderAgents(agents);
+  renderQueue(state);
+  renderAlerts(alerts);
+  renderCliq(pings);
+  if(charts.tickets) refreshCharts();
+}
+
+/* ============ INIT ============ */
+renderAll();
+renderPulse();
+buildCharts();
+</script>
+</body>
+</html>
