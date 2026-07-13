@@ -108,7 +108,7 @@ body{
 /* ---------- TOP WIDGETS: Tickets Across Departments + Voice + Chats ---------- */
 .top-widgets{
   flex-shrink:0;
-  display:grid;grid-template-columns: 1.7fr 1.15fr 1.15fr;
+  display:grid;grid-template-columns: 1.4fr 1.3fr 1.3fr;
   gap:12px;margin-bottom:12px;
 }
 .top-widgets .panel{padding:12px 16px;}
@@ -119,9 +119,7 @@ body{
   gap:10px;
 }
 
-.widget-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;}
-.stat-grid{display:flex;gap:8px;}
-.kpi-flex-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:8px;}
+.stat-grid{flex:1;min-height:0;display:flex;gap:6px;}
 
 /* Bold, colorful single-value KPI box */
 .kpi-box{
@@ -130,19 +128,20 @@ body{
     linear-gradient(155deg, rgba(var(--accent-rgb),0.28), rgba(var(--accent-rgb),0.04) 65%),
     var(--surface);
   border:1.5px solid rgba(var(--accent-rgb),0.5);
-  border-radius:12px;
-  padding:10px 12px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;
+  border-radius:11px;
+  padding:8px 6px;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  text-align:center;position:relative;overflow:hidden;
 }
 .kpi-box::before{
-  content:"";position:absolute;top:0;left:0;right:0;height:4px;
-  background:var(--accent);box-shadow:0 0 12px 0 rgba(var(--accent-rgb),0.9);
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--accent);box-shadow:0 0 10px 0 rgba(var(--accent-rgb),0.9);
 }
 .kpi-box .k-label{
-  font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
-  color:var(--text-dim);line-height:1.3;
+  font-family:var(--font-mono);font-size:9px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;
+  color:var(--text-dim);line-height:1.25;
 }
-.kpi-box .k-value{font-family:var(--font-display);font-size:30px;font-weight:800;color:var(--accent);margin-top:5px;line-height:1;
-  text-shadow:0 0 18px rgba(var(--accent-rgb),0.5);}
+.kpi-box .k-value{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent);margin-top:4px;line-height:1;
+  text-shadow:0 0 14px rgba(var(--accent-rgb),0.5);}
 
 /* Named card with N labeled columns (ticket departments, agent availability by queue) */
 .breakdown-card{
@@ -370,8 +369,7 @@ body{
   .top-widgets{grid-template-columns:1fr;}
   .dept-grid{grid-template-columns:repeat(2,1fr);}
   .stat-grid{flex-wrap:wrap;}
-  .stat-grid .kpi-box{flex:1 1 45%;}
-  .kpi-flex-grid{grid-template-columns:repeat(2,1fr);}
+  .stat-grid .kpi-box{flex:1 1 30%;}
   .dash{display:flex;flex-direction:column;height:auto;}
   .panel{min-height:280px;}
   .status-columns{grid-template-columns:repeat(2,1fr);}
@@ -420,16 +418,13 @@ body{
     <div class="panel-head">
       <div class="panel-title"><span class="bar" style="background:var(--blue)"></span>Voice</div>
     </div>
-    <div class="widget-body">
-      <div class="stat-grid" id="voiceStats"></div>
-      <div id="voiceBreakdown"></div>
-    </div>
+    <div class="stat-grid" id="voiceStats"></div>
   </div>
   <div class="panel tw-chats">
     <div class="panel-head">
       <div class="panel-title"><span class="bar" style="background:var(--pink)"></span>Chats</div>
     </div>
-    <div class="kpi-flex-grid" id="chatsStats"></div>
+    <div class="stat-grid" id="chatsStats"></div>
   </div>
 </div>
 
@@ -664,14 +659,10 @@ function renderDeptGrid(depts){
 /* ============ RENDER: VOICE ============ */
 function renderVoice(v){
   document.getElementById('voiceStats').innerHTML =
-    kpiBoxHTML("Calls Taken So Far", v.callsTaken, "var(--blue)") +
+    kpiBoxHTML("Calls Taken", v.callsTaken, "var(--blue)") +
     kpiBoxHTML("Missed Calls", v.missed, "var(--red)") +
-    kpiBoxHTML("Outbound", v.outbound, "var(--cyan)");
-
-  document.getElementById('voiceBreakdown').innerHTML = breakdownCardHTML(
-    "Agent Availability Across Queues", "var(--green)",
-    v.queueAvail.map(q=>({label:q.name, value:`${q.available}/${q.total}`}))
-  );
+    kpiBoxHTML("Outbound", v.outbound, "var(--cyan)") +
+    v.queueAvail.map(q=>kpiBoxHTML(`Avail. ${q.name}`, `${q.available}/${q.total}`, "var(--green)")).join('');
 }
 
 /* ============ RENDER: CHATS ============ */
@@ -680,7 +671,7 @@ function renderChats(c){
     kpiBoxHTML("Active Chats", c.active, "var(--cyan)") +
     kpiBoxHTML("Missed Chats", c.missed, "var(--red)") +
     kpiBoxHTML("Closed Chats", c.closed, "var(--green)") +
-    kpiBoxHTML("Agents Availability", `${c.availAgents}/${c.totalAgents}`, "var(--blue)") +
+    kpiBoxHTML("Availability", `${c.availAgents}/${c.totalAgents}`, "var(--blue)") +
     kpiBoxHTML("CSAT", c.csat, "var(--green)") +
     kpiBoxHTML("Neutral", c.neutral, "var(--amber)") +
     kpiBoxHTML("DSAT", c.dsat, "var(--red)");
