@@ -121,45 +121,47 @@ body{
 
 .widget-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;}
 .stat-grid{display:flex;gap:8px;}
+.kpi-flex-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:8px;}
 
-/* Single-value stat card (Calls Taken, Missed Chats, etc.) */
-.stat-card{
+/* Bold, colorful single-value KPI box */
+.kpi-box{
   flex:1;min-width:0;
   background:
-    linear-gradient(155deg, rgba(var(--accent-rgb),0.22), rgba(var(--accent-rgb),0.03) 65%),
+    linear-gradient(155deg, rgba(var(--accent-rgb),0.28), rgba(var(--accent-rgb),0.04) 65%),
     var(--surface);
-  border:1px solid rgba(var(--accent-rgb),0.35);
+  border:1.5px solid rgba(var(--accent-rgb),0.5);
   border-radius:12px;
-  padding:9px 10px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;
+  padding:10px 12px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;
 }
-.stat-card::before{
+.kpi-box::before{
   content:"";position:absolute;top:0;left:0;right:0;height:4px;
-  background:var(--accent);box-shadow:0 0 10px 0 rgba(var(--accent-rgb),0.8);
+  background:var(--accent);box-shadow:0 0 12px 0 rgba(var(--accent-rgb),0.9);
 }
-.stat-card .v-label{
-  font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
-  color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+.kpi-box .k-label{
+  font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--text-dim);line-height:1.3;
 }
-.stat-card .v-val{font-family:var(--font-display);font-size:23px;font-weight:700;color:var(--accent);margin-top:4px;line-height:1;}
+.kpi-box .k-value{font-family:var(--font-display);font-size:30px;font-weight:800;color:var(--accent);margin-top:5px;line-height:1;
+  text-shadow:0 0 18px rgba(var(--accent-rgb),0.5);}
 
-/* Named card with N labeled columns (ticket departments, agent availability by queue, CSAT/Neutral/DSAT) */
+/* Named card with N labeled columns (ticket departments, agent availability by queue) */
 .breakdown-card{
   flex:1;min-height:0;
-  background:linear-gradient(160deg, rgba(var(--bd-rgb),0.09), transparent 55%), var(--surface-2);
-  border:1px solid rgba(var(--bd-rgb),0.28);
+  background:linear-gradient(160deg, rgba(var(--bd-rgb),0.1), transparent 55%), var(--surface-2);
+  border:1.5px solid rgba(var(--bd-rgb),0.35);
   border-radius:12px;
   padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0;
 }
 .breakdown-name{
-  font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:.02em;
+  font-family:var(--font-mono);font-size:12px;font-weight:800;letter-spacing:.02em;
   color:var(--bd-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .breakdown-row{display:flex;gap:6px;flex:1;}
 .breakdown-stat{
-  flex:1;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  flex:1;min-width:0;background:var(--surface);border:1px solid rgba(var(--bd-rgb),0.3);border-radius:9px;
   padding:8px 4px;text-align:center;display:flex;flex-direction:column;justify-content:center;
 }
-.breakdown-stat .b-val{font-family:var(--font-display);font-size:21px;font-weight:700;color:var(--text);line-height:1;}
+.breakdown-stat .b-val{font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--bd-color);line-height:1;}
 .breakdown-stat .b-label{
   font-family:var(--font-mono);font-size:9px;font-weight:700;color:var(--text-dim);
   text-transform:uppercase;letter-spacing:.02em;margin-top:5px;
@@ -368,7 +370,8 @@ body{
   .top-widgets{grid-template-columns:1fr;}
   .dept-grid{grid-template-columns:repeat(2,1fr);}
   .stat-grid{flex-wrap:wrap;}
-  .stat-grid .stat-card{flex:1 1 45%;}
+  .stat-grid .kpi-box{flex:1 1 45%;}
+  .kpi-flex-grid{grid-template-columns:repeat(2,1fr);}
   .dash{display:flex;flex-direction:column;height:auto;}
   .panel{min-height:280px;}
   .status-columns{grid-template-columns:repeat(2,1fr);}
@@ -426,10 +429,7 @@ body{
     <div class="panel-head">
       <div class="panel-title"><span class="bar" style="background:var(--pink)"></span>Chats</div>
     </div>
-    <div class="widget-body">
-      <div class="stat-grid" id="chatsStats"></div>
-      <div id="chatsBreakdown"></div>
-    </div>
+    <div class="kpi-flex-grid" id="chatsStats"></div>
   </div>
 </div>
 
@@ -569,11 +569,11 @@ function breakdownCardHTML(name, color, stats){
       <div class="breakdown-row">${cols}</div>
     </div>`;
 }
-function statCardHTML(label, value, accent){
+function kpiBoxHTML(label, value, accent){
   return `
-    <div class="stat-card" style="--accent:${accent};--accent-rgb:${rgbOf(accent)}">
-      <div class="v-label">${label}</div>
-      <div class="v-val">${value}</div>
+    <div class="kpi-box" style="--accent:${accent};--accent-rgb:${rgbOf(accent)}">
+      <div class="k-label">${label}</div>
+      <div class="k-value">${value}</div>
     </div>`;
 }
 
@@ -601,15 +601,19 @@ const VOICE_QUEUES = [
 function genVoiceState(){
   return {
     callsTaken: rand(40,140), missed: rand(2,18), outbound: rand(10,60),
-    queueAvail: VOICE_QUEUES.map(q=>({name:q.name, pct: rand(55,95)})),
+    queueAvail: VOICE_QUEUES.map(q=>{
+      const total = rand(4,10);
+      return {name:q.name, available: rand(1,total), total};
+    }),
   };
 }
 
 /* ---------- CHATS ---------- */
 function genChatsState(agents){
-  const availPct = Math.round((agents.filter(a=>a.status==="Available").length/agents.length)*100);
+  const available = agents.filter(a=>a.status==="Available").length;
   return {
-    active: rand(8,30), missed: rand(1,12), closed: rand(20,80), availPct,
+    active: rand(8,30), missed: rand(1,12), closed: rand(20,80),
+    availAgents: available, totalAgents: agents.length,
     csat: rand(60,90), neutral: rand(5,20), dsat: rand(2,15),
   };
 }
@@ -660,28 +664,26 @@ function renderDeptGrid(depts){
 /* ============ RENDER: VOICE ============ */
 function renderVoice(v){
   document.getElementById('voiceStats').innerHTML =
-    statCardHTML("Calls Taken So Far", v.callsTaken, "var(--blue)") +
-    statCardHTML("Missed Calls", v.missed, "var(--red)") +
-    statCardHTML("Outbound", v.outbound, "var(--cyan)");
+    kpiBoxHTML("Calls Taken So Far", v.callsTaken, "var(--blue)") +
+    kpiBoxHTML("Missed Calls", v.missed, "var(--red)") +
+    kpiBoxHTML("Outbound", v.outbound, "var(--cyan)");
 
   document.getElementById('voiceBreakdown').innerHTML = breakdownCardHTML(
     "Agent Availability Across Queues", "var(--green)",
-    v.queueAvail.map(q=>({label:q.name, value:q.pct+"%"}))
+    v.queueAvail.map(q=>({label:q.name, value:`${q.available}/${q.total}`}))
   );
 }
 
 /* ============ RENDER: CHATS ============ */
 function renderChats(c){
   document.getElementById('chatsStats').innerHTML =
-    statCardHTML("Active Chats", c.active, "var(--cyan)") +
-    statCardHTML("Missed Chats", c.missed, "var(--red)") +
-    statCardHTML("Closed Chats", c.closed, "var(--green)") +
-    statCardHTML("Agents Availability", c.availPct+"%", "var(--blue)");
-
-  document.getElementById('chatsBreakdown').innerHTML = breakdownCardHTML(
-    "CSAT / Neutral / DSAT", "var(--purple)",
-    [{label:"CSAT", value:c.csat}, {label:"Neutral", value:c.neutral}, {label:"DSAT", value:c.dsat}]
-  );
+    kpiBoxHTML("Active Chats", c.active, "var(--cyan)") +
+    kpiBoxHTML("Missed Chats", c.missed, "var(--red)") +
+    kpiBoxHTML("Closed Chats", c.closed, "var(--green)") +
+    kpiBoxHTML("Agents Availability", `${c.availAgents}/${c.totalAgents}`, "var(--blue)") +
+    kpiBoxHTML("CSAT", c.csat, "var(--green)") +
+    kpiBoxHTML("Neutral", c.neutral, "var(--amber)") +
+    kpiBoxHTML("DSAT", c.dsat, "var(--red)");
 }
 
 /* ============ RENDER: AGENTS ============ */
