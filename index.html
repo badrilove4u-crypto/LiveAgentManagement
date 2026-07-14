@@ -105,21 +105,34 @@ body{
 .top-widgets{
   flex-shrink:0;
   display:grid;grid-template-columns: 1.4fr 1.3fr 1.3fr;
+  align-items:start;
   gap:12px;margin-bottom:12px;
 }
 .top-widgets .panel{padding:12px 16px;}
 
-.dept-grid{flex:1;min-height:0;display:flex;flex-direction:column;}
-.dept-table{width:100%;border-collapse:collapse;}
-.dept-table thead th{
-  font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--text-dim);text-align:left;padding:0 10px 8px;
+/* Single-line strip: one compact block per department, matching the
+   Voice/Chats KPI-row shape so Tickets doesn't dominate top-row height. */
+.dept-grid{flex:1;min-height:0;display:flex;gap:6px;}
+.dept-block{
+  flex:1;min-width:0;
+  background:linear-gradient(160deg, rgba(var(--bd-rgb),0.09), transparent 55%), var(--surface-2);
+  border:1.5px solid rgba(var(--bd-rgb),0.35);
+  border-radius:11px;
+  padding:7px 8px;display:flex;flex-direction:column;justify-content:center;gap:5px;
 }
-.dept-table thead th:not(:first-child){text-align:center;}
-.dept-table tbody td{padding:9px 10px;border-top:1px solid var(--border);}
-.dept-table tbody td:not(:first-child){text-align:center;font-family:var(--font-display);font-weight:800;font-size:19px;color:var(--text);}
-.dept-name-cell{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;}
-.dept-name-cell .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.dept-block-name{
+  font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:.02em;
+  color:var(--bd-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:6px;
+}
+.dept-block-name .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--bd-color);}
+.dept-block-stats{display:flex;gap:6px;}
+.dept-block-stat{flex:1;min-width:0;text-align:center;}
+.dept-block-stat .v{font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--text);line-height:1;}
+.dept-block-stat .l{
+  font-family:var(--font-mono);font-size:7.5px;font-weight:700;color:var(--text-dim);
+  text-transform:uppercase;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 
 .stat-grid{flex:1;min-height:0;display:flex;gap:6px;}
 
@@ -152,7 +165,7 @@ body{
   flex:1;min-height:0;
   display:grid;
   grid-template-columns: 2.2fr 1fr;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 3fr minmax(140px, 1fr);
   grid-template-areas:
     "agents cliq"
     "charts charts";
@@ -280,7 +293,7 @@ body{
 .alert-body .a-meta{font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);margin-top:2px;font-weight:600;}
 
 /* ---------- CLIQ CHANNELS ---------- */
-.cliq-feed{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;justify-content:space-evenly;}
+.cliq-feed{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:6px;justify-content:space-evenly;}
 .cliq-channel-row{
   background:
     linear-gradient(155deg, rgba(var(--channel-rgb),0.14), rgba(var(--channel-rgb),0.02) 70%),
@@ -288,21 +301,21 @@ body{
   border:1px solid rgba(var(--channel-rgb),0.28);
   border-left:3px solid var(--channel-color);
   border-radius:10px;
-  padding:9px 11px;
+  padding:6px 10px;
 }
 .cliq-top-row{display:flex;align-items:center;justify-content:space-between;gap:6px;}
-.cliq-channel{font-family:var(--font-body);font-size:14px;font-weight:600;color:var(--text);}
-.cliq-total{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);flex-shrink:0;font-weight:600;}
-.cliq-bar{height:7px;border-radius:4px;background:rgba(15,23,42,0.08);margin-top:8px;overflow:hidden;}
-.cliq-bar-fill{height:100%;border-radius:4px;}
-.cliq-stats-row{display:flex;align-items:center;gap:16px;margin-top:7px;}
-.cliq-stat{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;font-weight:600;}
-.cliq-stat .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cliq-channel{font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--text);}
+.cliq-total{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);flex-shrink:0;font-weight:600;}
+.cliq-bar{height:5px;border-radius:3px;background:rgba(15,23,42,0.08);margin-top:5px;overflow:hidden;}
+.cliq-bar-fill{height:100%;border-radius:3px;}
+.cliq-stats-row{display:flex;align-items:center;gap:14px;margin-top:4px;}
+.cliq-stat{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:5px;font-weight:600;}
+.cliq-stat .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .cliq-stat.open .dot{background:var(--amber);}
 .cliq-stat.closed .dot{background:var(--green);}
 
 /* ---------- CHARTS ---------- */
-.chart-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;height:210px;}
+.chart-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;min-height:0;}
 .chart-box{background:var(--surface-2);border-radius:11px;padding:12px 14px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:0;position:relative;overflow:hidden;}
 .chart-box::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;}
 .chart-box:nth-child(1){border-color:rgba(124,58,237,0.25);}
@@ -520,14 +533,14 @@ function kpiBoxHTML(label, value, accent){
 
 /* ---------- TICKETS ACROSS DEPARTMENTS ---------- */
 const DEPARTMENTS = [
-  {name:"Zoho Projects",           color:"var(--cyan)"},
-  {name:"Zoho Projects Partner",   color:"var(--purple)"},
-  {name:"Zoho Projects Onboarding",color:"var(--amber)"},
-  {name:"Zoho Projects Premium",   color:"var(--pink)"},
+  {name:"Zoho Projects",           shortName:"Projects",   color:"var(--cyan)"},
+  {name:"Zoho Projects Partner",   shortName:"Partner",    color:"var(--purple)"},
+  {name:"Zoho Projects Onboarding",shortName:"Onboarding", color:"var(--amber)"},
+  {name:"Zoho Projects Premium",   shortName:"Premium",    color:"var(--pink)"},
 ];
 function genDeptStats(){
   return DEPARTMENTS.map(d=>({
-    name:d.name, color:d.color,
+    name:d.name, shortName:d.shortName, color:d.color,
     open: rand(8,45), onHold: rand(0,14), received: rand(3,28),
   }));
 }
@@ -593,18 +606,15 @@ setInterval(tickRefresh, 1000);
 
 /* ============ RENDER: TICKETS ACROSS DEPARTMENTS ============ */
 function renderDeptGrid(depts){
-  const rows = depts.map(d=>`
-    <tr>
-      <td><div class="dept-name-cell"><span class="dot" style="background:${d.color}"></span>${d.name}</div></td>
-      <td>${d.open}</td>
-      <td>${d.onHold}</td>
-      <td>${d.received}</td>
-    </tr>`).join('');
-  document.getElementById('deptGrid').innerHTML = `
-    <table class="dept-table">
-      <thead><tr><th>Department</th><th>Open</th><th>On Hold</th><th>Received Today</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+  document.getElementById('deptGrid').innerHTML = depts.map(d=>`
+    <div class="dept-block" style="--bd-color:${d.color};--bd-rgb:${rgbOf(d.color)}">
+      <div class="dept-block-name"><span class="dot"></span>${d.shortName}</div>
+      <div class="dept-block-stats">
+        <div class="dept-block-stat"><div class="v">${d.open}</div><div class="l">Open</div></div>
+        <div class="dept-block-stat"><div class="v">${d.onHold}</div><div class="l">Hold</div></div>
+        <div class="dept-block-stat"><div class="v">${d.received}</div><div class="l">Today</div></div>
+      </div>
+    </div>`).join('');
 }
 
 /* ============ RENDER: VOICE ============ */
