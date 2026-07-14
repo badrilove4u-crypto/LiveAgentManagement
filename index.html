@@ -109,17 +109,35 @@ body{
 }
 .top-widgets .panel{padding:12px 16px;}
 
-.dept-grid{flex:1;min-height:0;display:flex;flex-direction:column;}
+.dept-grid{flex-shrink:0;display:flex;flex-direction:column;}
 .dept-table{width:100%;border-collapse:collapse;}
 .dept-table thead th{
   font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
   color:var(--text-dim);text-align:left;padding:0 10px 8px;
 }
 .dept-table thead th:not(:first-child){text-align:center;}
-.dept-table tbody td{padding:9px 10px;border-top:1px solid var(--border);}
-.dept-table tbody td:not(:first-child){text-align:center;font-family:var(--font-display);font-weight:800;font-size:19px;color:var(--text);}
-.dept-name-cell{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;}
+.dept-table tbody td{padding:6px 10px;border-top:1px solid var(--border);}
+.dept-table tbody td:not(:first-child){text-align:center;font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--text);}
+.dept-name-cell{display:flex;align-items:center;gap:9px;font-weight:700;font-size:13px;}
 .dept-name-cell .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+.subsection-label{
+  flex-shrink:0;
+  font-family:var(--font-mono);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-dim);margin:10px 0 6px;
+}
+.old-tickets-list{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:5px;}
+.old-ticket-row{
+  flex-shrink:0;display:flex;align-items:center;gap:10px;
+  padding:5px 10px;background:var(--surface-2);
+  border-left:3px solid var(--tk-color);border-radius:7px;
+}
+.old-ticket-id{font-family:var(--font-mono);font-size:11px;font-weight:800;color:var(--tk-color);flex-shrink:0;}
+.old-ticket-desc{
+  flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.old-ticket-age{font-family:var(--font-mono);font-size:11px;font-weight:800;color:var(--red);flex-shrink:0;}
 
 .stat-grid{flex:1;min-height:0;display:flex;gap:6px;}
 
@@ -369,6 +387,8 @@ body{
       <div class="panel-title"><span class="bar" style="background:var(--cyan)"></span>Tickets Across Departments</div>
     </div>
     <div class="dept-grid" id="deptGrid"></div>
+    <div class="subsection-label">Needs Immediate Attention — Oldest First</div>
+    <div class="old-tickets-list" id="oldTickets"></div>
   </div>
   <div class="panel tw-voice">
     <div class="panel-head">
@@ -532,6 +552,39 @@ function genDeptStats(){
   }));
 }
 
+/* ---------- OLDEST OPEN TICKETS (needs immediate attention) ---------- */
+const DEPT_SHORT = {
+  "Zoho Projects":"Projects", "Zoho Projects Partner":"Partner",
+  "Zoho Projects Onboarding":"Onboarding", "Zoho Projects Premium":"Premium",
+};
+const CUSTOMER_NAMES = ["Acme Corp","Beta LLC","Globex Inc","Initech","Umbrella Co","Stark Industries","Wayne Enterprises","Hooli","Soylent Corp","Massive Dynamic"];
+const TICKET_ISSUES = [
+  "Login failure — cannot access workspace",
+  "Billing invoice mismatch",
+  "API integration broken",
+  "Data export stuck at 0%",
+  "Permission error on shared board",
+  "Slack sync failure",
+  "SSO login broken for team",
+  "Critical bug blocking sprint",
+  "Custom field not saving",
+  "Report generation timing out",
+];
+function genOldTickets(){
+  const tickets = Array.from({length:5}, ()=>{
+    const dept = pick(DEPARTMENTS);
+    return {
+      id: rand(4000,4999),
+      customer: pick(CUSTOMER_NAMES),
+      dept: DEPT_SHORT[dept.name],
+      issue: pick(TICKET_ISSUES),
+      color: dept.color,
+      ageHours: rand(30,220),
+    };
+  });
+  return tickets.sort((a,b)=>b.ageHours-a.ageHours);
+}
+
 /* ---------- VOICE ---------- */
 const VOICE_QUEUES = [
   {name:"India", color:"var(--cyan)"},
@@ -607,6 +660,19 @@ function renderDeptGrid(depts){
     </table>`;
 }
 
+/* ============ RENDER: OLDEST OPEN TICKETS ============ */
+function renderOldTickets(tickets){
+  document.getElementById('oldTickets').innerHTML = tickets.map(t=>{
+    const d = Math.floor(t.ageHours/24), h = t.ageHours%24;
+    return `
+    <div class="old-ticket-row" style="--tk-color:${t.color}">
+      <span class="old-ticket-id">#${t.id}</span>
+      <span class="old-ticket-desc">${t.customer} · ${t.dept} — ${t.issue}</span>
+      <span class="old-ticket-age">${d}d ${h}h</span>
+    </div>`;
+  }).join('');
+}
+
 /* ============ RENDER: VOICE ============ */
 function renderVoice(v){
   document.getElementById('voiceStats').innerHTML =
@@ -629,6 +695,7 @@ function renderChats(c){
 }
 
 /* ============ RENDER: AGENTS ============ */
+const NOT_AVAILABLE_ORDER = ["In a Meeting","Away","On Leave","Offline"];
 function renderAgents(agents){
   const online = agents.filter(a=>a.status!=="Offline" && a.status!=="On Leave").length;
   const busy = agents.filter(a=>["In a Meeting","Away"].includes(a.status)).length;
@@ -637,8 +704,16 @@ function renderAgents(agents){
   document.getElementById('statBusy').textContent = busy;
   document.getElementById('statOffline').textContent = offline;
 
-  const notAvailable = agents.filter(a=>a.status!=="Available");
-  document.getElementById('agentCountNote').textContent = `${notAvailable.length} not available · ${agents.length-notAvailable.length} online`;
+  const notAvailable = agents
+    .filter(a=>a.status!=="Available")
+    .sort((a,b)=>NOT_AVAILABLE_ORDER.indexOf(a.status)-NOT_AVAILABLE_ORDER.indexOf(b.status));
+
+  const countsByStatus = NOT_AVAILABLE_ORDER
+    .map(status=>({status, count: notAvailable.filter(a=>a.status===status).length}))
+    .filter(s=>s.count>0)
+    .map(s=>`${s.status} ${s.count}`)
+    .join(' · ');
+  document.getElementById('agentCountNote').textContent = countsByStatus || 'All agents are online';
 
   document.getElementById('agentGrid').innerHTML = notAvailable.length
     ? notAvailable.map(a=>{
@@ -813,9 +888,11 @@ function renderAll(){
   const alerts = genAlerts();
   const pings = genCliqChannelStats();
   const depts = genDeptStats();
+  const oldTickets = genOldTickets();
   const voice = genVoiceState();
   const chatsState = genChatsState(agents);
   renderDeptGrid(depts);
+  renderOldTickets(oldTickets);
   renderVoice(voice);
   renderChats(chatsState);
   renderAgents(agents);
