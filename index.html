@@ -11,21 +11,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 :root{
-  --bg:#080B12;
-  --surface:#10151F;
-  --surface-2:#161D2B;
-  --border:rgba(255,255,255,0.07);
-  --text:#F2F5FA;
-  --text-dim:#AEB8D1;
-  --text-faint:#7C87A3;
+  --bg:#FFFFFF;
+  --surface:#FFFFFF;
+  --surface-2:#F1F4F9;
+  --border:rgba(15,23,42,0.13);
+  --text:#111827;
+  --text-dim:#3F4A5F;
+  --text-faint:#5B6779;
 
-  --cyan:#00D9FF;
-  --pink:#FF3D9A;
-  --amber:#FFB020;
-  --green:#27E58C;
-  --red:#FF4D5E;
-  --purple:#A56BFF;
-  --blue:#4D8DFF;
+  --cyan:#0891B2;
+  --pink:#DB2777;
+  --amber:#D97706;
+  --green:#16A34A;
+  --red:#DC2626;
+  --purple:#7C3AED;
+  --blue:#2563EB;
 
   --font-display:'Space Grotesk', sans-serif;
   --font-body:'Inter', sans-serif;
@@ -36,11 +36,7 @@
 html, body{height:100%;overflow:hidden;}
 
 body{
-  background:
-    radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(0,217,255,0.10), transparent 60%),
-    radial-gradient(ellipse 1000px 700px at 100% 0%, rgba(255,61,154,0.08), transparent 55%),
-    radial-gradient(ellipse 900px 900px at 50% 110%, rgba(165,107,255,0.08), transparent 55%),
-    var(--bg);
+  background:var(--bg);
   color:var(--text);
   font-family:var(--font-body);
   height:100vh;
@@ -49,7 +45,7 @@ body{
   padding:14px 20px;
 }
 
-::selection{background:var(--cyan);color:#000;}
+::selection{background:var(--cyan);color:#fff;}
 
 /* ---------- HEADER ---------- */
 .header{
@@ -67,7 +63,7 @@ body{
   width:42px;height:42px;border-radius:11px;
   background:conic-gradient(from 220deg, var(--cyan), var(--pink), var(--amber), var(--cyan));
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 24px rgba(0,217,255,0.4);
+  box-shadow:0 2px 6px rgba(15,23,42,0.2);
   flex-shrink:0;
 }
 .brand-mark::after{content:"";width:16px;height:16px;border-radius:5px;background:var(--bg);}
@@ -101,7 +97,7 @@ body{
 .clock-block{text-align:right;padding-left:20px;border-left:1px solid var(--border);}
 .clock{font-family:var(--font-mono);font-size:26px;font-weight:700;letter-spacing:.02em;}
 .refresh-row{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:3px;}
-.refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;}
+.refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 2s infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
 .refresh-text{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);font-weight:600;}
 
@@ -113,11 +109,17 @@ body{
 }
 .top-widgets .panel{padding:12px 16px;}
 
-.dept-grid{
-  flex:1;min-height:0;
-  display:grid;grid-template-columns:repeat(4,1fr);
-  gap:10px;
+.dept-grid{flex:1;min-height:0;display:flex;flex-direction:column;}
+.dept-table{width:100%;border-collapse:collapse;}
+.dept-table thead th{
+  font-family:var(--font-mono);font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-dim);text-align:left;padding:0 10px 8px;
 }
+.dept-table thead th:not(:first-child){text-align:center;}
+.dept-table tbody td{padding:9px 10px;border-top:1px solid var(--border);}
+.dept-table tbody td:not(:first-child){text-align:center;font-family:var(--font-display);font-weight:800;font-size:19px;color:var(--text);}
+.dept-name-cell{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;}
+.dept-name-cell .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 
 .stat-grid{flex:1;min-height:0;display:flex;gap:6px;}
 
@@ -125,58 +127,35 @@ body{
 .kpi-box{
   flex:1;min-width:0;
   background:
-    linear-gradient(155deg, rgba(var(--accent-rgb),0.28), rgba(var(--accent-rgb),0.04) 65%),
+    linear-gradient(155deg, rgba(var(--accent-rgb),0.1), rgba(var(--accent-rgb),0.02) 65%),
     var(--surface);
-  border:1.5px solid rgba(var(--accent-rgb),0.5);
+  border:1.5px solid rgba(var(--accent-rgb),0.4);
   border-radius:11px;
   padding:8px 6px;display:flex;flex-direction:column;justify-content:center;align-items:center;
   text-align:center;position:relative;overflow:hidden;
 }
 .kpi-box::before{
   content:"";position:absolute;top:0;left:0;right:0;height:3px;
-  background:var(--accent);box-shadow:0 0 10px 0 rgba(var(--accent-rgb),0.9);
+  background:var(--accent);
 }
 .kpi-box .k-label{
   font-family:var(--font-mono);font-size:9px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;
   color:var(--text-dim);line-height:1.25;
 }
-.kpi-box .k-value{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent);margin-top:4px;line-height:1;
-  text-shadow:0 0 14px rgba(var(--accent-rgb),0.5);}
-
-/* Named card with N labeled columns (ticket departments, agent availability by queue) */
-.breakdown-card{
-  flex:1;min-height:0;
-  background:linear-gradient(160deg, rgba(var(--bd-rgb),0.1), transparent 55%), var(--surface-2);
-  border:1.5px solid rgba(var(--bd-rgb),0.35);
-  border-radius:12px;
-  padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0;
-}
-.breakdown-name{
-  font-family:var(--font-mono);font-size:12px;font-weight:800;letter-spacing:.02em;
-  color:var(--bd-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.breakdown-row{display:flex;gap:6px;flex:1;}
-.breakdown-stat{
-  flex:1;min-width:0;background:var(--surface);border:1px solid rgba(var(--bd-rgb),0.3);border-radius:9px;
-  padding:8px 4px;text-align:center;display:flex;flex-direction:column;justify-content:center;
-}
-.breakdown-stat .b-val{font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--bd-color);line-height:1;}
-.breakdown-stat .b-label{
-  font-family:var(--font-mono);font-size:9px;font-weight:700;color:var(--text-dim);
-  text-transform:uppercase;letter-spacing:.02em;margin-top:5px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
+.kpi-box .k-value{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent);margin-top:4px;line-height:1;}
 
 /* ---------- MAIN GRID (all widgets visible at once) ---------- */
+/* Queue Health and Live Alerts are hidden for now (see .hidden-panel) — their
+   HTML/JS are kept intact so they can be brought back by removing that class. */
+.panel.hidden-panel{display:none;}
 .dash{
   flex:1;min-height:0;
   display:grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr auto;
+  grid-template-columns: 2.2fr 1fr;
+  grid-template-rows: 1fr auto;
   grid-template-areas:
-    "agents agents queue   cliq"
-    "agents agents alerts  alerts"
-    "charts charts  charts charts";
+    "agents cliq"
+    "charts charts";
   gap:12px;
 }
 .gw-agents{grid-area:agents;}
@@ -186,12 +165,11 @@ body{
 .gw-charts{grid-area:charts;}
 
 @media (max-width:1200px){
-  .dash{grid-template-columns:1fr 1fr; grid-template-areas:
-    "agents agents"
-    "queue  cliq"
-    "alerts alerts"
-    "charts charts";
-    grid-template-rows:1.3fr auto auto auto;
+  .dash{grid-template-columns:1fr; grid-template-areas:
+    "agents"
+    "cliq"
+    "charts";
+    grid-template-rows:1.3fr auto auto;
   }
 }
 
@@ -200,31 +178,31 @@ body{
   background:var(--surface);border:1px solid var(--border);border-radius:14px;
   padding:16px 18px;display:flex;flex-direction:column;min-height:0;
   position:relative;overflow:hidden;
+  box-shadow:0 1px 3px rgba(15,23,42,0.06);
 }
 .panel::before{
   content:"";position:absolute;top:0;left:0;right:0;height:4px;
   background:var(--panel-accent, var(--border));
-  box-shadow:0 0 10px 0 rgba(var(--panel-accent-rgb,255), 0.7);
 }
 .gw-agents.panel{
-  --panel-accent:var(--cyan); --panel-accent-rgb:0,217,255;
-  background:linear-gradient(160deg, rgba(0,217,255,0.05), transparent 45%), var(--surface);
-  border-color:rgba(0,217,255,0.18);
+  --panel-accent:var(--cyan); --panel-accent-rgb:8,145,178;
+  background:linear-gradient(160deg, rgba(8,145,178,0.05), transparent 45%), var(--surface);
+  border-color:rgba(8,145,178,0.2);
 }
 .gw-queue.panel{
-  --panel-accent:var(--purple); --panel-accent-rgb:165,107,255;
-  background:linear-gradient(160deg, rgba(165,107,255,0.06), transparent 45%), var(--surface);
-  border-color:rgba(165,107,255,0.18);
+  --panel-accent:var(--purple); --panel-accent-rgb:124,58,237;
+  background:linear-gradient(160deg, rgba(124,58,237,0.05), transparent 45%), var(--surface);
+  border-color:rgba(124,58,237,0.2);
 }
 .gw-cliq.panel{
-  --panel-accent:var(--green); --panel-accent-rgb:39,229,140;
-  background:linear-gradient(160deg, rgba(39,229,140,0.06), transparent 45%), var(--surface);
-  border-color:rgba(39,229,140,0.18);
+  --panel-accent:var(--green); --panel-accent-rgb:22,163,74;
+  background:linear-gradient(160deg, rgba(22,163,74,0.05), transparent 45%), var(--surface);
+  border-color:rgba(22,163,74,0.2);
 }
 .gw-alerts.panel{
-  --panel-accent:var(--red); --panel-accent-rgb:255,77,94;
-  background:linear-gradient(160deg, rgba(255,77,94,0.06), transparent 45%), var(--surface);
-  border-color:rgba(255,77,94,0.18);
+  --panel-accent:var(--red); --panel-accent-rgb:220,38,38;
+  background:linear-gradient(160deg, rgba(220,38,38,0.05), transparent 45%), var(--surface);
+  border-color:rgba(220,38,38,0.2);
 }
 .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;}
 .panel-title{font-family:var(--font-display);font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;}
@@ -236,34 +214,16 @@ body{
 }
 .panel-note{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);font-weight:600;}
 
-/* ---------- AGENT STATUS COLUMNS ---------- */
-.status-columns{
-  flex:1;min-height:0;
-  display:grid;grid-template-columns:repeat(5,1fr);
-  gap:10px;
+/* ---------- AGENT AVAILABILITY (not-available agents only) ---------- */
+.na-grid{
+  flex:1;min-height:0;overflow:hidden;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  grid-auto-rows:min-content;gap:9px;align-content:start;
 }
-.status-col{
-  display:flex;flex-direction:column;min-height:0;
-  background:linear-gradient(160deg, rgba(var(--col-rgb),0.07), transparent 55%), var(--surface-2);
-  border:1px solid rgba(var(--col-rgb),0.22);
-  border-radius:12px;
-  padding:10px;
+.na-empty{
+  grid-column:1/-1;font-family:var(--font-mono);font-size:13px;color:var(--text-dim);
+  text-align:center;padding:20px 4px;
 }
-.status-col-head{
-  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid rgba(var(--col-rgb),0.22);
-}
-.status-col-name{
-  font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--col-color);display:flex;align-items:center;gap:7px;
-}
-.status-col-name .dot{width:9px;height:9px;border-radius:50%;background:var(--col-color);box-shadow:0 0 7px var(--col-color);flex-shrink:0;}
-.status-col-count{
-  font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--col-color);
-  background:rgba(var(--col-rgb),0.16);border-radius:20px;padding:2px 9px;flex-shrink:0;
-}
-.status-col-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:7px;}
-.status-col-empty{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);text-align:center;padding:14px 4px;}
 
 .agent-card{
   background:linear-gradient(155deg, rgba(var(--col-rgb),0.12), rgba(var(--col-rgb),0.02) 70%), var(--surface);
@@ -274,15 +234,14 @@ body{
 .avatar{
   width:34px;height:34px;border-radius:9px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-display);font-weight:700;font-size:12px;color:#0A0D14;
+  font-family:var(--font-display);font-weight:700;font-size:12px;color:#FFFFFF;
   background:var(--avatar-bg);
 }
 .agent-info{flex:1;min-width:0;}
 .agent-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.agent-since{font-size:11.5px;color:var(--text-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-@media (max-width:1400px){
-  .status-columns{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));grid-auto-rows:1fr;}
+.agent-since{
+  font-size:11.5px;color:var(--col-color);font-weight:600;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 
 /* ---------- QUEUE ---------- */
@@ -315,8 +274,8 @@ body{
   border-bottom:1px solid rgba(var(--sev-rgb),0.25);
 }
 .alert.critical{animation:flash 1.4s infinite;}
-@keyframes flash{0%,100%{background:var(--surface-2);}50%{background:rgba(255,77,94,0.14);}}
-.alert-dot{width:9px;height:9px;border-radius:50%;background:var(--sev-color);margin-top:3px;flex-shrink:0;box-shadow:0 0 8px var(--sev-color);}
+@keyframes flash{0%,100%{background:var(--surface-2);}50%{background:rgba(220,38,38,0.12);}}
+.alert-dot{width:9px;height:9px;border-radius:50%;background:var(--sev-color);margin-top:3px;flex-shrink:0;}
 .alert-body .a-title{font-size:14.5px;font-weight:600;}
 .alert-body .a-meta{font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);margin-top:2px;font-weight:600;}
 
@@ -334,47 +293,44 @@ body{
 .cliq-top-row{display:flex;align-items:center;justify-content:space-between;gap:6px;}
 .cliq-channel{font-family:var(--font-body);font-size:14px;font-weight:600;color:var(--text);}
 .cliq-total{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);flex-shrink:0;font-weight:600;}
-.cliq-bar{height:7px;border-radius:4px;background:rgba(255,255,255,0.08);margin-top:8px;overflow:hidden;}
-.cliq-bar-fill{height:100%;border-radius:4px;box-shadow:0 0 8px 0 rgba(var(--channel-rgb),0.7);}
+.cliq-bar{height:7px;border-radius:4px;background:rgba(15,23,42,0.08);margin-top:8px;overflow:hidden;}
+.cliq-bar-fill{height:100%;border-radius:4px;}
 .cliq-stats-row{display:flex;align-items:center;gap:16px;margin-top:7px;}
 .cliq-stat{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;font-weight:600;}
 .cliq-stat .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.cliq-stat.open .dot{background:var(--amber);box-shadow:0 0 5px var(--amber);}
-.cliq-stat.closed .dot{background:var(--green);box-shadow:0 0 5px var(--green);}
+.cliq-stat.open .dot{background:var(--amber);}
+.cliq-stat.closed .dot{background:var(--green);}
 
 /* ---------- CHARTS ---------- */
 .chart-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;height:210px;}
 .chart-box{background:var(--surface-2);border-radius:11px;padding:12px 14px;border:1px solid var(--border);display:flex;flex-direction:column;min-height:0;position:relative;overflow:hidden;}
 .chart-box::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;}
-.chart-box:nth-child(1){border-color:rgba(165,107,255,0.22);}
-.chart-box:nth-child(1)::before{background:var(--purple);box-shadow:0 0 10px 0 rgba(165,107,255,0.7);}
-.chart-box:nth-child(2){border-color:rgba(0,217,255,0.22);}
-.chart-box:nth-child(2)::before{background:linear-gradient(90deg,var(--cyan),var(--pink));box-shadow:0 0 10px 0 rgba(0,217,255,0.6);}
-.chart-box:nth-child(3){border-color:rgba(39,229,140,0.22);}
-.chart-box:nth-child(3)::before{background:linear-gradient(90deg,var(--green),var(--red));box-shadow:0 0 10px 0 rgba(39,229,140,0.6);}
-.chart-box:nth-child(4){border-color:rgba(255,176,32,0.22);}
-.chart-box:nth-child(4)::before{background:var(--amber);box-shadow:0 0 10px 0 rgba(255,176,32,0.7);}
+.chart-box:nth-child(1){border-color:rgba(124,58,237,0.25);}
+.chart-box:nth-child(1)::before{background:var(--purple);}
+.chart-box:nth-child(2){border-color:rgba(8,145,178,0.25);}
+.chart-box:nth-child(2)::before{background:linear-gradient(90deg,var(--cyan),var(--pink));}
+.chart-box:nth-child(3){border-color:rgba(22,163,74,0.25);}
+.chart-box:nth-child(3)::before{background:linear-gradient(90deg,var(--green),var(--red));}
+.chart-box:nth-child(4){border-color:rgba(217,119,6,0.25);}
+.chart-box:nth-child(4)::before{background:var(--amber);}
 .chart-box h4{flex-shrink:0;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);margin-bottom:7px;}
 .canvas-wrap{flex:1;min-height:0;position:relative;}
 .canvas-wrap canvas{position:absolute;inset:0;width:100% !important;height:100% !important;}
 
 /* scrollbar */
 ::-webkit-scrollbar{width:5px;height:5px;}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:3px;}
+::-webkit-scrollbar-thumb{background:rgba(15,23,42,0.2);border-radius:3px;}
 
 /* Small/short viewport fallback: allow scroll instead of crushing content */
 @media (max-width:900px), (max-height:640px){
   html, body{height:auto;overflow:auto;}
   body{display:block;}
   .top-widgets{grid-template-columns:1fr;}
-  .dept-grid{grid-template-columns:repeat(2,1fr);}
   .stat-grid{flex-wrap:wrap;}
   .stat-grid .kpi-box{flex:1 1 30%;}
   .dash{display:flex;flex-direction:column;height:auto;}
   .panel{min-height:280px;}
-  .status-columns{grid-template-columns:repeat(2,1fr);}
-  .status-col-list{max-height:220px;}
-  .queue-rows,.alerts-list,.cliq-feed{max-height:320px;}
+  .cliq-feed{max-height:320px;}
   .chart-grid{height:auto;grid-template-columns:1fr 1fr;}
   .chart-box{height:200px;}
 }
@@ -435,10 +391,10 @@ body{
       <div class="panel-title"><span class="bar" style="background:var(--cyan)"></span>Agent Availability <span class="src-tag">Zoho People</span></div>
       <div class="panel-note" id="agentCountNote">25 agents</div>
     </div>
-    <div class="status-columns" id="agentGrid"></div>
+    <div class="na-grid" id="agentGrid"></div>
   </div>
 
-  <div class="panel gw-queue">
+  <div class="panel gw-queue hidden-panel">
     <div class="panel-head"><div class="panel-title"><span class="bar" style="background:var(--purple)"></span>Queue Health</div></div>
     <div class="gauge-wrap">
       <div class="gauge" id="healthGauge">
@@ -460,7 +416,7 @@ body{
     <div class="cliq-feed" id="cliqFeed"></div>
   </div>
 
-  <div class="panel gw-alerts">
+  <div class="panel gw-alerts hidden-panel">
     <div class="panel-head"><div class="panel-title"><span class="bar" style="background:var(--red)"></span>Live Alerts</div><div class="panel-note" id="alertCount">-- active</div></div>
     <div class="alerts-list" id="alertsListFull"></div>
   </div>
@@ -488,20 +444,20 @@ const STATUS_META = {
   "On Leave":  {color:"var(--purple)"},
   "Offline":   {color:"var(--text-faint)"},
 };
-const AVATAR_COLORS = ["#00D9FF","#FF3D9A","#FFB020","#27E58C","#A56BFF","#4D8DFF"];
+const AVATAR_COLORS = ["#0891B2","#DB2777","#D97706","#16A34A","#7C3AED","#2563EB"];
 
 /* RGB equivalents of the CSS accent vars, used to build translucent tinted
    backgrounds/borders via rgba(var(--x-rgb), alpha) since CSS can't derive
    rgba() straight from a var() holding a hex value. */
 const ACCENT_RGB = {
-  "var(--blue)":"77,141,255",
-  "var(--cyan)":"0,217,255",
-  "var(--purple)":"165,107,255",
-  "var(--amber)":"255,176,32",
-  "var(--green)":"39,229,140",
-  "var(--red)":"255,77,94",
-  "var(--pink)":"255,61,154",
-  "var(--text-faint)":"82,92,116",
+  "var(--blue)":"37,99,235",
+  "var(--cyan)":"8,145,178",
+  "var(--purple)":"124,58,237",
+  "var(--amber)":"217,119,6",
+  "var(--green)":"22,163,74",
+  "var(--red)":"220,38,38",
+  "var(--pink)":"219,39,119",
+  "var(--text-faint)":"91,103,121",
 };
 function rgbOf(v){ return ACCENT_RGB[v] || "255,255,255"; }
 
@@ -554,16 +510,6 @@ function genAlerts(){
 
 const SEV_COLOR = {critical:"var(--red)", warn:"var(--amber)", info:"var(--cyan)"};
 
-/* ---------- SHARED: named card with N labeled stat columns ---------- */
-function breakdownCardHTML(name, color, stats){
-  const cols = stats.map(s=>`
-    <div class="breakdown-stat"><div class="b-val">${s.value}</div><div class="b-label">${s.label}</div></div>`).join('');
-  return `
-    <div class="breakdown-card" style="--bd-color:${color};--bd-rgb:${rgbOf(color)}">
-      <div class="breakdown-name">${name}</div>
-      <div class="breakdown-row">${cols}</div>
-    </div>`;
-}
 function kpiBoxHTML(label, value, accent){
   return `
     <div class="kpi-box" style="--accent:${accent};--accent-rgb:${rgbOf(accent)}">
@@ -647,13 +593,18 @@ setInterval(tickRefresh, 1000);
 
 /* ============ RENDER: TICKETS ACROSS DEPARTMENTS ============ */
 function renderDeptGrid(depts){
-  document.getElementById('deptGrid').innerHTML = depts.map(d=>
-    breakdownCardHTML(d.name, d.color, [
-      {label:"Open", value:d.open},
-      {label:"On Hold", value:d.onHold},
-      {label:"Received Today", value:d.received},
-    ])
-  ).join('');
+  const rows = depts.map(d=>`
+    <tr>
+      <td><div class="dept-name-cell"><span class="dot" style="background:${d.color}"></span>${d.name}</div></td>
+      <td>${d.open}</td>
+      <td>${d.onHold}</td>
+      <td>${d.received}</td>
+    </tr>`).join('');
+  document.getElementById('deptGrid').innerHTML = `
+    <table class="dept-table">
+      <thead><tr><th>Department</th><th>Open</th><th>On Hold</th><th>Received Today</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 /* ============ RENDER: VOICE ============ */
@@ -685,41 +636,32 @@ function renderAgents(agents){
   document.getElementById('statOnline').textContent = online;
   document.getElementById('statBusy').textContent = busy;
   document.getElementById('statOffline').textContent = offline;
-  document.getElementById('agentCountNote').textContent = `${agents.length} agents · ${online} available now`;
 
-  const STATUS_ORDER = ["Available","In a Meeting","Away","On Leave","Offline"];
-  document.getElementById('agentGrid').innerHTML = STATUS_ORDER.map(status=>{
-    const group = agents.filter(a=>a.status===status);
-    const color = STATUS_META[status].color;
-    const rgb = rgbOf(color);
-    const cards = group.length
-      ? group.map(a=>`
-        <div class="agent-card">
+  const notAvailable = agents.filter(a=>a.status!=="Available");
+  document.getElementById('agentCountNote').textContent = `${notAvailable.length} not available · ${agents.length-notAvailable.length} online`;
+
+  document.getElementById('agentGrid').innerHTML = notAvailable.length
+    ? notAvailable.map(a=>{
+        const color = STATUS_META[a.status].color;
+        return `
+        <div class="agent-card" style="--col-color:${color};--col-rgb:${rgbOf(color)}">
           <div class="avatar" style="--avatar-bg:${a.color}">${a.initials}</div>
           <div class="agent-info">
             <div class="agent-name">${a.name}</div>
-            <div class="agent-since">${a.since}</div>
+            <div class="agent-since">${a.status} · ${a.since}</div>
           </div>
-        </div>`).join('')
-      : `<div class="status-col-empty">No agents</div>`;
-    return `
-    <div class="status-col" style="--col-color:${color};--col-rgb:${rgb}">
-      <div class="status-col-head">
-        <span class="status-col-name"><span class="dot"></span>${status}</span>
-        <span class="status-col-count">${group.length}</span>
-      </div>
-      <div class="status-col-list">${cards}</div>
-    </div>`;
-  }).join('');
+        </div>`;
+      }).join('')
+    : `<div class="na-empty">All agents are online</div>`;
 }
 
 /* ============ RENDER: QUEUE ============ */
 function renderQueue(state){
   document.getElementById('qLongest').textContent = state.longestWait;
   document.getElementById('healthScore').textContent = state.healthScore;
-  const hue = state.healthScore>75 ? '39,229,140' : state.healthScore>50 ? '255,176,32' : '255,77,94';
+  const hue = state.healthScore>75 ? '22,163,74' : state.healthScore>50 ? '217,119,6' : '220,38,38';
   document.getElementById('healthGauge').style.background =
-    `conic-gradient(rgb(${hue}) ${state.healthScore*3.6}deg, rgba(255,255,255,0.08) 0deg)`;
+    `conic-gradient(rgb(${hue}) ${state.healthScore*3.6}deg, rgba(15,23,42,0.08) 0deg)`;
 
   const rows = [
     ["Tickets waiting", state.waiting],
@@ -778,18 +720,18 @@ function renderPulse(){
   document.getElementById('pulseSvg').innerHTML = `
     <defs>
       <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#00D9FF" stop-opacity="0.45"/>
-        <stop offset="100%" stop-color="#00D9FF" stop-opacity="0"/>
+        <stop offset="0%" stop-color="#0891B2" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#0891B2" stop-opacity="0"/>
       </linearGradient>
     </defs>
     <path d="${areaD}" fill="url(#pg)"/>
-    <path d="${d}" fill="none" stroke="#00D9FF" stroke-width="1.6"/>
+    <path d="${d}" fill="none" stroke="#0891B2" stroke-width="1.8"/>
   `;
 }
 setInterval(renderPulse, 1200);
 
 /* ============ CHARTS ============ */
-Chart.defaults.color = "#AEB8D1";
+Chart.defaults.color = "#3F4A5F";
 Chart.defaults.font.family = "'JetBrains Mono', monospace";
 Chart.defaults.font.size = 12;
 
@@ -799,38 +741,38 @@ function buildCharts(){
   const ctxT = document.getElementById('chartTickets');
   charts.tickets = new Chart(ctxT, {
     type:'bar',
-    data:{labels:hourLabels, datasets:[{data:hourLabels.map(()=>rand(8,40)), backgroundColor:'#A56BFF', borderRadius:3}]},
-    options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.06)'}}}}
+    data:{labels:hourLabels, datasets:[{data:hourLabels.map(()=>rand(8,40)), backgroundColor:'#7C3AED', borderRadius:3}]},
+    options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(15,23,42,0.08)'}}}}
   });
 
   const ctxC = document.getElementById('chartChats');
   charts.chats = new Chart(ctxC, {
     type:'line',
     data:{labels:hourLabels, datasets:[
-      {label:'Chats', data:hourLabels.map(()=>rand(5,30)), borderColor:'#00D9FF', backgroundColor:'rgba(0,217,255,0.12)', fill:true, tension:.4, pointRadius:0},
-      {label:'Calls', data:hourLabels.map(()=>rand(2,18)), borderColor:'#FF3D9A', backgroundColor:'rgba(255,61,154,0.10)', fill:true, tension:.4, pointRadius:0},
+      {label:'Chats', data:hourLabels.map(()=>rand(5,30)), borderColor:'#0891B2', backgroundColor:'rgba(8,145,178,0.12)', fill:true, tension:.4, pointRadius:0},
+      {label:'Calls', data:hourLabels.map(()=>rand(2,18)), borderColor:'#DB2777', backgroundColor:'rgba(219,39,119,0.10)', fill:true, tension:.4, pointRadius:0},
     ]},
-    options:{maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:9,font:{size:11}}}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.06)'}}}}
+    options:{maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:9,font:{size:11}}}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(15,23,42,0.08)'}}}}
   });
 
   const ctxS = document.getElementById('chartCsat');
   charts.csat = new Chart(ctxS, {
     type:'line',
     data:{labels:hourLabels, datasets:[
-      {label:'CSAT %', data:hourLabels.map(()=>rand(82,98)), borderColor:'#27E58C', tension:.4, pointRadius:0},
-      {label:'DSAT #', data:hourLabels.map(()=>rand(0,6)), borderColor:'#FF4D5E', tension:.4, pointRadius:0, yAxisID:'y1'},
+      {label:'CSAT %', data:hourLabels.map(()=>rand(82,98)), borderColor:'#16A34A', tension:.4, pointRadius:0},
+      {label:'DSAT #', data:hourLabels.map(()=>rand(0,6)), borderColor:'#DC2626', tension:.4, pointRadius:0, yAxisID:'y1'},
     ]},
     options:{maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:9,font:{size:11}}}},
-      scales:{x:{grid:{display:false}}, y:{grid:{color:'rgba(255,255,255,0.06)'}}, y1:{position:'right', grid:{display:false}}}}
+      scales:{x:{grid:{display:false}}, y:{grid:{color:'rgba(15,23,42,0.08)'}}, y1:{position:'right', grid:{display:false}}}}
   });
 
   const ctxO = document.getElementById('chartOcc');
   charts.occ = new Chart(ctxO, {
     type:'bar',
     data:{labels:hourLabels, datasets:[{data:hourLabels.map(()=>rand(45,95)), backgroundColor:hourLabels.map(()=>{
-      const v = rand(45,95); return v>80?'#FF4D5E':v>60?'#FFB020':'#27E58C';
+      const v = rand(45,95); return v>80?'#DC2626':v>60?'#D97706':'#16A34A';
     }), borderRadius:3}]},
-    options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.06)'},max:100}}}
+    options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(15,23,42,0.08)'},max:100}}}
   });
 }
 
@@ -861,7 +803,7 @@ function refreshCharts(){
 
   const occData = hourLabels.map(()=>rand(45,95));
   charts.occ.data.datasets[0].data = occData;
-  charts.occ.data.datasets[0].backgroundColor = occData.map(v=> v>80?'#FF4D5E':v>60?'#FFB020':'#27E58C');
+  charts.occ.data.datasets[0].backgroundColor = occData.map(v=> v>80?'#DC2626':v>60?'#D97706':'#16A34A');
   charts.occ.update();
 }
 
