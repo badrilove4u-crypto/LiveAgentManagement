@@ -112,6 +112,24 @@ body{
 .dept-name-cell{display:flex;align-items:center;gap:7px;font-weight:700;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .dept-name-cell .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
+.ratings-box{
+  flex-shrink:0;margin-top:10px;
+  background:linear-gradient(160deg, rgba(124,58,237,0.08), transparent 55%), var(--surface-2);
+  border:1px solid rgba(124,58,237,0.25);
+  border-radius:10px;padding:8px 10px;
+}
+.ratings-label{
+  font-family:var(--font-mono);font-size:9.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--purple);margin-bottom:6px;
+}
+.ratings-row{display:flex;gap:8px;}
+.ratings-stat{flex:1;min-width:0;text-align:center;}
+.ratings-stat .v{font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--text);line-height:1;}
+.ratings-stat .l{
+  font-family:var(--font-mono);font-size:8.5px;font-weight:700;color:var(--text-dim);
+  text-transform:uppercase;margin-top:3px;
+}
+
 .old-tickets-col{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;
   border-left:1px solid var(--border);padding-left:12px;}
 .subsection-label{
@@ -162,7 +180,7 @@ body{
   flex:1;min-height:0;
   display:grid;
   grid-template-columns: 2.2fr 1fr;
-  grid-template-rows: 3fr minmax(140px, 1fr);
+  grid-template-rows: 3.3fr minmax(120px, 1fr);
   grid-template-areas:
     "agents cliq"
     "charts charts";
@@ -228,9 +246,9 @@ body{
 /* A single flowing column, not 5 independently height-boxed rows —
    each status section only takes the height its own chips need, and
    the outer container's overflow:hidden is the only clipping guard. */
-.status-rows{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:9px;}
+.status-rows{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:6px;}
 .status-row{flex-shrink:0;}
-.status-row-head{flex-shrink:0;display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.status-row-head{flex-shrink:0;display:flex;align-items:center;gap:8px;margin-bottom:3px;}
 .status-row-name{
   font-family:var(--font-mono);font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
   color:var(--status-color);
@@ -392,7 +410,12 @@ body{
     <div class="panel-head">
       <div class="panel-title"><span class="bar" style="background:var(--pink)"></span>Chats</div>
     </div>
-    <table class="metric-table"><tbody id="chatsStats"></tbody></table>
+    <div class="agent-summary agent-summary-top" id="chatsAgentSummary"></div>
+    <table class="dept-table">
+      <thead><tr><th>Department</th><th>Active</th><th>Missed</th><th>Closed</th></tr></thead>
+      <tbody id="chatsStats"></tbody>
+    </table>
+    <div class="ratings-box" id="chatsRatings"></div>
   </div>
 </div>
 
@@ -450,13 +473,15 @@ body{
 const FIRST_NAMES = ["John","Sarah","Priya","Marcus","Elena","Tomás","Aisha","Yuki","David","Fatima","Liam","Noor","Carlos","Mei","Ben","Zara","Ivan","Grace","Omar","Nina","Theo","Ana","Kwame","Lucia","Sam"];
 /* Zoho People availability states (attendance / presence, not workload) */
 const STATUS_META = {
-  "Available": {color:"var(--green)"},
-  "Meeting":   {color:"var(--blue)"},
-  "Busy":      {color:"var(--amber)"},
-  "Assist":    {color:"var(--purple)"},
-  "Offline":   {color:"var(--text-faint)"},
+  "Meeting": {color:"var(--blue)"},
+  "Busy":    {color:"var(--amber)"},
+  "Assist":  {color:"var(--green)"},
+  "Away":    {color:"var(--cyan)"},
+  "Out":     {color:"var(--purple)"},
+  "DND":     {color:"var(--red)"},
+  "Offline": {color:"var(--text-faint)"},
 };
-const STATUS_ORDER = ["Available","Meeting","Busy","Assist","Offline"];
+const STATUS_ORDER = ["Meeting","Busy","Assist","Away","Out","DND","Offline"];
 const AVATAR_COLORS = ["#0891B2","#DB2777","#D97706","#16A34A","#7C3AED","#2563EB"];
 
 /* RGB equivalents of the CSS accent vars, used to build translucent tinted
@@ -482,10 +507,12 @@ function genAgents(){
   return FIRST_NAMES.map((name,i)=>{
     const r = Math.random();
     let status;
-    if(r < 0.55) status = "Available";
-    else if(r < 0.70) status = "Meeting";
-    else if(r < 0.82) status = "Busy";
-    else if(r < 0.90) status = "Assist";
+    if(r < 0.20) status = "Meeting";
+    else if(r < 0.40) status = "Busy";
+    else if(r < 0.55) status = "Assist";
+    else if(r < 0.70) status = "Away";
+    else if(r < 0.80) status = "Out";
+    else if(r < 0.90) status = "DND";
     else status = "Offline";
 
     const h = rand(8,17);
@@ -522,14 +549,15 @@ function metricRowHTML(name, value, accent){
     <tr><td class="metric-name">${name}</td><td class="metric-value" style="color:${accent}">${value}</td></tr>`;
 }
 
-/* Clean, non-overlapping partition of agents by status (used for the
-   Available/Busy/Offline summary shown on Voice and Tickets). */
-function genAgentStatusCounts(agents){
-  return {
-    available: agents.filter(a=>a.status==="Available").length,
-    busy: agents.filter(a=>["Meeting","Busy","Assist"].includes(a.status)).length,
-    offline: agents.filter(a=>a.status==="Offline").length,
-  };
+/* Available/Busy/Offline summary shown on Voice/Tickets/Chats. Deliberately
+   independent of the Zoho People widget's 7-status presence data — those
+   widgets keep their own simple Available/Busy/Offline split regardless of
+   how the Agent Availability panel's taxonomy changes. */
+function genAgentStatusCounts(totalAgents){
+  const offline = rand(1,6);
+  const busy = rand(Math.round(totalAgents*0.25), Math.round(totalAgents*0.45));
+  const available = totalAgents - offline - busy;
+  return {available, busy, offline};
 }
 function agentSummaryHTML(counts){
   return `Agents: <b>${counts.available}</b> Available · <b>${counts.busy}</b> Busy · <b>${counts.offline}</b> Offline`;
@@ -586,11 +614,13 @@ function genVoiceState(){
 }
 
 /* ---------- CHATS ---------- */
-function genChatsState(agents){
-  const available = agents.filter(a=>a.status==="Available").length;
+function genChatsState(){
+  const byDept = DEPARTMENTS.map(d=>({
+    name:d.name, color:d.color,
+    active: rand(2,10), missed: rand(0,4), closed: rand(5,25),
+  }));
   return {
-    active: rand(8,30), missed: rand(1,12), closed: rand(20,80),
-    availAgents: available, totalAgents: agents.length,
+    byDept,
     csat: rand(60,90), neutral: rand(5,20), dsat: rand(2,15),
   };
 }
@@ -664,23 +694,32 @@ function renderVoice(v, agentCounts){
 }
 
 /* ============ RENDER: CHATS ============ */
-function renderChats(c){
-  document.getElementById('chatsStats').innerHTML =
-    metricRowHTML("Active Chats", c.active, "var(--cyan)") +
-    metricRowHTML("Missed Chats", c.missed, "var(--red)") +
-    metricRowHTML("Closed Chats", c.closed, "var(--green)") +
-    metricRowHTML("Availability", `${c.availAgents}/${c.totalAgents}`, "var(--blue)") +
-    metricRowHTML("CSAT", c.csat, "var(--green)") +
-    metricRowHTML("Neutral", c.neutral, "var(--amber)") +
-    metricRowHTML("DSAT", c.dsat, "var(--red)");
+function renderChats(c, agentCounts){
+  document.getElementById('chatsAgentSummary').innerHTML = agentSummaryHTML(agentCounts);
+  document.getElementById('chatsStats').innerHTML = c.byDept.map(d=>`
+    <tr>
+      <td><div class="dept-name-cell"><span class="dot" style="background:${d.color}"></span>${d.name}</div></td>
+      <td>${d.active}</td>
+      <td>${d.missed}</td>
+      <td>${d.closed}</td>
+    </tr>`).join('');
+  document.getElementById('chatsRatings').innerHTML = `
+    <div class="ratings-label">Customer Ratings</div>
+    <div class="ratings-row">
+      <div class="ratings-stat"><div class="v">${c.csat}</div><div class="l">CSAT</div></div>
+      <div class="ratings-stat"><div class="v">${c.neutral}</div><div class="l">Neutral</div></div>
+      <div class="ratings-stat"><div class="v">${c.dsat}</div><div class="l">DSAT</div></div>
+    </div>`;
 }
 
 /* ============ RENDER: AGENTS ============ */
 function renderAgents(agents){
-  const counts = genAgentStatusCounts(agents);
-  document.getElementById('statOnline').textContent = counts.available;
-  document.getElementById('statBusy').textContent = counts.busy;
-  document.getElementById('statOffline').textContent = agents.length - counts.available - counts.busy;
+  const busy = agents.filter(a=>["Meeting","Busy","Assist","DND"].includes(a.status)).length;
+  const offline = agents.filter(a=>["Offline","Out"].includes(a.status)).length;
+  const online = agents.length - offline;
+  document.getElementById('statOnline').textContent = online;
+  document.getElementById('statBusy').textContent = busy;
+  document.getElementById('statOffline').textContent = offline;
 
   document.getElementById('agentCountNote').textContent = STATUS_ORDER
     .map(status=>`${status} ${agents.filter(a=>a.status===status).length}`)
@@ -845,13 +884,13 @@ function renderAll(){
   const depts = genDeptStats();
   const oldTickets = genOldTickets();
   const voice = genVoiceState();
-  const chatsState = genChatsState(agents);
-  const agentCounts = genAgentStatusCounts(agents);
+  const chatsState = genChatsState();
+  const agentCounts = genAgentStatusCounts(agents.length);
   renderDeptGrid(depts);
   renderOldTickets(oldTickets);
   document.getElementById('ticketsAgentSummary').innerHTML = agentSummaryHTML(agentCounts);
   renderVoice(voice, agentCounts);
-  renderChats(chatsState);
+  renderChats(chatsState, agentCounts);
   renderAgents(agents);
   renderQueue(state);
   renderAlerts(alerts);
