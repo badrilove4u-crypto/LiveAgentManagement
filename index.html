@@ -148,10 +148,11 @@ body{
 .metric-value{font-family:var(--font-display);font-size:17px;font-weight:800;text-align:right;}
 
 .agent-summary{
-  flex-shrink:0;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);
+  flex-shrink:0;
   font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-dim);
 }
 .agent-summary b{color:var(--text);font-weight:800;}
+.agent-summary-top{margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border);}
 
 /* ---------- MAIN GRID (all widgets visible at once) ---------- */
 /* Queue Health and Live Alerts are hidden for now (see .hidden-panel) — their
@@ -223,35 +224,36 @@ body{
 }
 .panel-note{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);font-weight:600;}
 
-/* ---------- AGENT AVAILABILITY (not-available agents only) ---------- */
-.na-grid{
-  flex:1;min-height:0;overflow:hidden;
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-  grid-auto-rows:min-content;gap:9px;align-content:start;
+/* ---------- AGENT AVAILABILITY (one row per status) ---------- */
+/* A single flowing column, not 5 independently height-boxed rows —
+   each status section only takes the height its own chips need, and
+   the outer container's overflow:hidden is the only clipping guard. */
+.status-rows{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:9px;}
+.status-row{flex-shrink:0;}
+.status-row-head{flex-shrink:0;display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.status-row-name{
+  font-family:var(--font-mono);font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--status-color);
 }
-.na-empty{
-  grid-column:1/-1;font-family:var(--font-mono);font-size:13px;color:var(--text-dim);
-  text-align:center;padding:20px 4px;
+.status-row-count{
+  font-family:var(--font-display);font-size:13px;font-weight:800;color:var(--status-color);
+  background:rgba(var(--status-rgb),0.14);border-radius:14px;padding:1px 8px;
 }
+.status-row-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.status-row-empty{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);}
 
-.agent-card{
-  background:linear-gradient(155deg, rgba(var(--col-rgb),0.12), rgba(var(--col-rgb),0.02) 70%), var(--surface);
-  border:1px solid rgba(var(--col-rgb),0.24);
-  border-radius:9px;
-  padding:8px 10px;display:flex;gap:9px;align-items:center;
+.agent-chip{
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+  background:linear-gradient(155deg, rgba(var(--status-rgb),0.1), rgba(var(--status-rgb),0.02) 70%), var(--surface-2);
+  border:1px solid rgba(var(--status-rgb),0.25);
+  border-radius:20px;padding:3px 10px 3px 3px;
 }
-.avatar{
-  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+.chip-avatar{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-display);font-weight:700;font-size:12px;color:#FFFFFF;
-  background:var(--avatar-bg);
+  font-family:var(--font-display);font-weight:700;font-size:9px;color:#FFFFFF;
 }
-.agent-info{flex:1;min-width:0;}
-.agent-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.agent-since{
-  font-size:11.5px;color:var(--col-color);font-weight:600;margin-top:2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
+.chip-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;}
 
 /* ---------- QUEUE ---------- */
 .queue-rows{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
@@ -370,6 +372,7 @@ body{
     <div class="panel-head">
       <div class="panel-title"><span class="bar" style="background:var(--cyan)"></span>Tickets Across Departments</div>
     </div>
+    <div class="agent-summary agent-summary-top" id="ticketsAgentSummary"></div>
     <div class="tickets-row">
       <div class="dept-grid" id="deptGrid"></div>
       <div class="old-tickets-col">
@@ -377,14 +380,13 @@ body{
         <div class="old-tickets-list" id="oldTickets"></div>
       </div>
     </div>
-    <div class="agent-summary" id="ticketsAgentSummary"></div>
   </div>
   <div class="panel tw-voice">
     <div class="panel-head">
       <div class="panel-title"><span class="bar" style="background:var(--blue)"></span>Voice</div>
     </div>
+    <div class="agent-summary agent-summary-top" id="voiceAgentSummary"></div>
     <table class="metric-table"><tbody id="voiceStats"></tbody></table>
-    <div class="agent-summary" id="voiceAgentSummary"></div>
   </div>
   <div class="panel tw-chats">
     <div class="panel-head">
@@ -401,7 +403,7 @@ body{
       <div class="panel-title"><span class="bar" style="background:var(--cyan)"></span>Agent Availability <span class="src-tag">Zoho People</span></div>
       <div class="panel-note" id="agentCountNote">25 agents</div>
     </div>
-    <div class="na-grid" id="agentGrid"></div>
+    <div class="status-rows" id="agentGrid"></div>
   </div>
 
   <div class="panel gw-queue hidden-panel">
@@ -449,11 +451,12 @@ const FIRST_NAMES = ["John","Sarah","Priya","Marcus","Elena","Tomás","Aisha","Y
 /* Zoho People availability states (attendance / presence, not workload) */
 const STATUS_META = {
   "Available": {color:"var(--green)"},
-  "In a Meeting": {color:"var(--blue)"},
-  "Away":      {color:"var(--amber)"},
-  "On Leave":  {color:"var(--purple)"},
+  "Meeting":   {color:"var(--blue)"},
+  "Busy":      {color:"var(--amber)"},
+  "Assist":    {color:"var(--purple)"},
   "Offline":   {color:"var(--text-faint)"},
 };
+const STATUS_ORDER = ["Available","Meeting","Busy","Assist","Offline"];
 const AVATAR_COLORS = ["#0891B2","#DB2777","#D97706","#16A34A","#7C3AED","#2563EB"];
 
 /* RGB equivalents of the CSS accent vars, used to build translucent tinted
@@ -480,26 +483,20 @@ function genAgents(){
     const r = Math.random();
     let status;
     if(r < 0.55) status = "Available";
-    else if(r < 0.70) status = "In a Meeting";
-    else if(r < 0.82) status = "Away";
-    else if(r < 0.90) status = "On Leave";
+    else if(r < 0.70) status = "Meeting";
+    else if(r < 0.82) status = "Busy";
+    else if(r < 0.90) status = "Assist";
     else status = "Offline";
 
-    let since;
-    if(status === "On Leave"){
-      since = "On leave today";
-    } else if(status === "Offline"){
-      since = "Not checked in";
-    } else {
-      const h = rand(8,17), m = pad2(rand(0,59));
-      since = `Since ${h}:${m} ${h<12?'AM':'PM'}`;
-    }
+    const h = rand(8,17);
+    const since = status === "Offline"
+      ? "Not checked in"
+      : `Since ${h}:${pad2(rand(0,59))} ${h<12?'AM':'PM'}`;
 
     return {
       id:i, name, initials:name.slice(0,2).toUpperCase(),
       color: AVATAR_COLORS[i % AVATAR_COLORS.length],
       status, since
-
     };
   });
 }
@@ -530,8 +527,8 @@ function metricRowHTML(name, value, accent){
 function genAgentStatusCounts(agents){
   return {
     available: agents.filter(a=>a.status==="Available").length,
-    busy: agents.filter(a=>["In a Meeting","Away"].includes(a.status)).length,
-    offline: agents.filter(a=>["Offline","On Leave"].includes(a.status)).length,
+    busy: agents.filter(a=>["Meeting","Busy","Assist"].includes(a.status)).length,
+    offline: agents.filter(a=>a.status==="Offline").length,
   };
 }
 function agentSummaryHTML(counts){
@@ -679,39 +676,36 @@ function renderChats(c){
 }
 
 /* ============ RENDER: AGENTS ============ */
-const NOT_AVAILABLE_ORDER = ["In a Meeting","Away","On Leave","Offline"];
 function renderAgents(agents){
-  const online = agents.filter(a=>a.status!=="Offline" && a.status!=="On Leave").length;
-  const busy = agents.filter(a=>["In a Meeting","Away"].includes(a.status)).length;
-  const offline = agents.length - online;
-  document.getElementById('statOnline').textContent = online;
-  document.getElementById('statBusy').textContent = busy;
-  document.getElementById('statOffline').textContent = offline;
+  const counts = genAgentStatusCounts(agents);
+  document.getElementById('statOnline').textContent = counts.available;
+  document.getElementById('statBusy').textContent = counts.busy;
+  document.getElementById('statOffline').textContent = agents.length - counts.available - counts.busy;
 
-  const notAvailable = agents
-    .filter(a=>a.status!=="Available")
-    .sort((a,b)=>NOT_AVAILABLE_ORDER.indexOf(a.status)-NOT_AVAILABLE_ORDER.indexOf(b.status));
-
-  const countsByStatus = NOT_AVAILABLE_ORDER
-    .map(status=>({status, count: notAvailable.filter(a=>a.status===status).length}))
-    .filter(s=>s.count>0)
-    .map(s=>`${s.status} ${s.count}`)
+  document.getElementById('agentCountNote').textContent = STATUS_ORDER
+    .map(status=>`${status} ${agents.filter(a=>a.status===status).length}`)
     .join(' · ');
-  document.getElementById('agentCountNote').textContent = countsByStatus || 'All agents are online';
 
-  document.getElementById('agentGrid').innerHTML = notAvailable.length
-    ? notAvailable.map(a=>{
-        const color = STATUS_META[a.status].color;
-        return `
-        <div class="agent-card" style="--col-color:${color};--col-rgb:${rgbOf(color)}">
-          <div class="avatar" style="--avatar-bg:${a.color}">${a.initials}</div>
-          <div class="agent-info">
-            <div class="agent-name">${a.name}</div>
-            <div class="agent-since">${a.status} · ${a.since}</div>
-          </div>
-        </div>`;
-      }).join('')
-    : `<div class="na-empty">All agents are online</div>`;
+  document.getElementById('agentGrid').innerHTML = STATUS_ORDER.map(status=>{
+    const color = STATUS_META[status].color;
+    const rgb = rgbOf(color);
+    const group = agents.filter(a=>a.status===status);
+    const chips = group.length
+      ? group.map(a=>`
+          <div class="agent-chip">
+            <span class="chip-avatar" style="background:${a.color}">${a.initials}</span>
+            <span class="chip-name">${a.name}</span>
+          </div>`).join('')
+      : `<span class="status-row-empty">None</span>`;
+    return `
+    <div class="status-row" style="--status-color:${color};--status-rgb:${rgb}">
+      <div class="status-row-head">
+        <span class="status-row-name">${status}</span>
+        <span class="status-row-count">${group.length}</span>
+      </div>
+      <div class="status-row-chips">${chips}</div>
+    </div>`;
+  }).join('');
 }
 
 /* ============ RENDER: QUEUE ============ */
