@@ -75,17 +75,6 @@ body{
   font-family:var(--font-display);font-size:27px;font-weight:700;letter-spacing:.01em;
 }
 
-.pulse-strip{
-  flex:1;height:48px;position:relative;
-  background:var(--surface);border:1px solid var(--border);border-radius:9px;
-  overflow:hidden;margin:0 6px;
-}
-.pulse-strip svg{width:100%;height:100%;display:block;}
-.pulse-label{
-  position:absolute;top:6px;left:12px;font-family:var(--font-mono);
-  font-size:11px;color:var(--text-faint);letter-spacing:.1em;text-transform:uppercase;font-weight:600;
-}
-
 .header-stats{display:flex;align-items:center;gap:22px;}
 .hstat{text-align:right;}
 .hstat .n{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1;}
@@ -149,28 +138,20 @@ body{
   flex:1;min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 
-.stat-grid{flex:1;min-height:0;display:flex;gap:6px;}
+.metric-table{width:100%;border-collapse:collapse;}
+.metric-table td{padding:5px 4px;border-top:1px solid var(--border);}
+.metric-table tr:first-child td{border-top:none;}
+.metric-name{
+  font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;
+  color:var(--text-dim);
+}
+.metric-value{font-family:var(--font-display);font-size:17px;font-weight:800;text-align:right;}
 
-/* Bold, colorful single-value KPI box */
-.kpi-box{
-  flex:1;min-width:0;
-  background:
-    linear-gradient(155deg, rgba(var(--accent-rgb),0.1), rgba(var(--accent-rgb),0.02) 65%),
-    var(--surface);
-  border:1.5px solid rgba(var(--accent-rgb),0.4);
-  border-radius:11px;
-  padding:8px 6px;display:flex;flex-direction:column;justify-content:center;align-items:center;
-  text-align:center;position:relative;overflow:hidden;
+.agent-summary{
+  flex-shrink:0;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);
+  font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-dim);
 }
-.kpi-box::before{
-  content:"";position:absolute;top:0;left:0;right:0;height:3px;
-  background:var(--accent);
-}
-.kpi-box .k-label{
-  font-family:var(--font-mono);font-size:11px;font-weight:800;letter-spacing:.01em;text-transform:uppercase;
-  color:var(--text-dim);line-height:1.25;
-}
-.kpi-box .k-value{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent);margin-top:4px;line-height:1;}
+.agent-summary b{color:var(--text);font-weight:800;}
 
 /* ---------- MAIN GRID (all widgets visible at once) ---------- */
 /* Queue Health and Live Alerts are hidden for now (see .hidden-panel) — their
@@ -354,8 +335,6 @@ body{
   html, body{height:auto;overflow:auto;}
   body{display:block;}
   .top-widgets{grid-template-columns:1fr;}
-  .stat-grid{flex-wrap:wrap;}
-  .stat-grid .kpi-box{flex:1 1 30%;}
   .dash{display:flex;flex-direction:column;height:auto;}
   .panel{min-height:280px;}
   .cliq-feed{max-height:320px;}
@@ -373,11 +352,6 @@ body{
       <div class="eyebrow">Live · Support Operations</div>
       <h1>Zoho Projects Support</h1>
     </div>
-  </div>
-
-  <div class="pulse-strip">
-    <div class="pulse-label">Activity Pulse — Calls · Chats · Tickets</div>
-    <svg id="pulseSvg" viewBox="0 0 600 44" preserveAspectRatio="none"></svg>
   </div>
 
   <div class="header-stats">
@@ -403,18 +377,20 @@ body{
         <div class="old-tickets-list" id="oldTickets"></div>
       </div>
     </div>
+    <div class="agent-summary" id="ticketsAgentSummary"></div>
   </div>
   <div class="panel tw-voice">
     <div class="panel-head">
       <div class="panel-title"><span class="bar" style="background:var(--blue)"></span>Voice</div>
     </div>
-    <div class="stat-grid" id="voiceStats"></div>
+    <table class="metric-table"><tbody id="voiceStats"></tbody></table>
+    <div class="agent-summary" id="voiceAgentSummary"></div>
   </div>
   <div class="panel tw-chats">
     <div class="panel-head">
       <div class="panel-title"><span class="bar" style="background:var(--pink)"></span>Chats</div>
     </div>
-    <div class="stat-grid" id="chatsStats"></div>
+    <table class="metric-table"><tbody id="chatsStats"></tbody></table>
   </div>
 </div>
 
@@ -544,12 +520,22 @@ function genAlerts(){
 
 const SEV_COLOR = {critical:"var(--red)", warn:"var(--amber)", info:"var(--cyan)"};
 
-function kpiBoxHTML(label, value, accent){
+function metricRowHTML(name, value, accent){
   return `
-    <div class="kpi-box" style="--accent:${accent};--accent-rgb:${rgbOf(accent)}">
-      <div class="k-label">${label}</div>
-      <div class="k-value">${value}</div>
-    </div>`;
+    <tr><td class="metric-name">${name}</td><td class="metric-value" style="color:${accent}">${value}</td></tr>`;
+}
+
+/* Clean, non-overlapping partition of agents by status (used for the
+   Available/Busy/Offline summary shown on Voice and Tickets). */
+function genAgentStatusCounts(agents){
+  return {
+    available: agents.filter(a=>a.status==="Available").length,
+    busy: agents.filter(a=>["In a Meeting","Away"].includes(a.status)).length,
+    offline: agents.filter(a=>["Offline","On Leave"].includes(a.status)).length,
+  };
+}
+function agentSummaryHTML(counts){
+  return `Agents: <b>${counts.available}</b> Available · <b>${counts.busy}</b> Busy · <b>${counts.offline}</b> Offline`;
 }
 
 /* ---------- TICKETS ACROSS DEPARTMENTS ---------- */
@@ -671,24 +657,25 @@ function renderOldTickets(tickets){
 }
 
 /* ============ RENDER: VOICE ============ */
-function renderVoice(v){
+function renderVoice(v, agentCounts){
   document.getElementById('voiceStats').innerHTML =
-    kpiBoxHTML("Calls Taken", v.callsTaken, "var(--blue)") +
-    kpiBoxHTML("Missed Calls", v.missed, "var(--red)") +
-    kpiBoxHTML("Outbound", v.outbound, "var(--cyan)") +
-    v.queueAvail.map(q=>kpiBoxHTML(`Avail. ${q.name}`, `${q.available}/${q.total}`, "var(--green)")).join('');
+    metricRowHTML("Calls Taken", v.callsTaken, "var(--blue)") +
+    metricRowHTML("Missed Calls", v.missed, "var(--red)") +
+    metricRowHTML("Outbound", v.outbound, "var(--cyan)") +
+    v.queueAvail.map(q=>metricRowHTML(`Avail. ${q.name}`, `${q.available}/${q.total}`, "var(--green)")).join('');
+  document.getElementById('voiceAgentSummary').innerHTML = agentSummaryHTML(agentCounts);
 }
 
 /* ============ RENDER: CHATS ============ */
 function renderChats(c){
   document.getElementById('chatsStats').innerHTML =
-    kpiBoxHTML("Active Chats", c.active, "var(--cyan)") +
-    kpiBoxHTML("Missed Chats", c.missed, "var(--red)") +
-    kpiBoxHTML("Closed Chats", c.closed, "var(--green)") +
-    kpiBoxHTML("Availability", `${c.availAgents}/${c.totalAgents}`, "var(--blue)") +
-    kpiBoxHTML("CSAT", c.csat, "var(--green)") +
-    kpiBoxHTML("Neutral", c.neutral, "var(--amber)") +
-    kpiBoxHTML("DSAT", c.dsat, "var(--red)");
+    metricRowHTML("Active Chats", c.active, "var(--cyan)") +
+    metricRowHTML("Missed Chats", c.missed, "var(--red)") +
+    metricRowHTML("Closed Chats", c.closed, "var(--green)") +
+    metricRowHTML("Availability", `${c.availAgents}/${c.totalAgents}`, "var(--blue)") +
+    metricRowHTML("CSAT", c.csat, "var(--green)") +
+    metricRowHTML("Neutral", c.neutral, "var(--amber)") +
+    metricRowHTML("DSAT", c.dsat, "var(--red)");
 }
 
 /* ============ RENDER: AGENTS ============ */
@@ -779,29 +766,6 @@ function renderCliq(channels){
   document.getElementById('cliqCountNote').textContent = `${totalPings} pings · 5 channels`;
 }
 
-/* ============ RENDER: PULSE STRIP ============ */
-let pulseData = Array.from({length:60}, ()=>rand(10,34));
-function renderPulse(){
-  pulseData.shift();
-  pulseData.push(rand(8,36));
-  const w=600,h=44;
-  const step = w/(pulseData.length-1);
-  let d = `M0,${h-pulseData[0]}`;
-  pulseData.forEach((v,i)=>{ d += ` L${i*step},${h-v}`; });
-  const areaD = d + ` L${w},${h} L0,${h} Z`;
-  document.getElementById('pulseSvg').innerHTML = `
-    <defs>
-      <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#0891B2" stop-opacity="0.35"/>
-        <stop offset="100%" stop-color="#0891B2" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <path d="${areaD}" fill="url(#pg)"/>
-    <path d="${d}" fill="none" stroke="#0891B2" stroke-width="1.8"/>
-  `;
-}
-setInterval(renderPulse, 1200);
-
 /* ============ CHARTS ============ */
 Chart.defaults.color = "#3F4A5F";
 Chart.defaults.font.family = "'JetBrains Mono', monospace";
@@ -888,9 +852,11 @@ function renderAll(){
   const oldTickets = genOldTickets();
   const voice = genVoiceState();
   const chatsState = genChatsState(agents);
+  const agentCounts = genAgentStatusCounts(agents);
   renderDeptGrid(depts);
   renderOldTickets(oldTickets);
-  renderVoice(voice);
+  document.getElementById('ticketsAgentSummary').innerHTML = agentSummaryHTML(agentCounts);
+  renderVoice(voice, agentCounts);
   renderChats(chatsState);
   renderAgents(agents);
   renderQueue(state);
@@ -901,7 +867,6 @@ function renderAll(){
 
 /* ============ INIT ============ */
 renderAll();
-renderPulse();
 buildCharts();
 </script>
 </body>
